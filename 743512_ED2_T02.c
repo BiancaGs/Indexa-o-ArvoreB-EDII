@@ -123,7 +123,7 @@ Produto recuperar_registro(int RRN);
  
  /********************FUNÇÕES DO MENU*********************/
  void cadastrar(Indice* iprimary, Indice* ibrand);
- 
+
  int alterar(Indice iprimary);
  
  void buscar(Indice iprimary,Indice ibrand);
@@ -299,4 +299,71 @@ int exibir_registro(int rrn)
 	printf("\n");
 
 	return 1;
+}
+
+ /*================================= FUNÇÕES ================================*/
+ 
+ void gerarChave(Produto * Novo){
+
+	Novo->pk[0] = Novo->nome[0];
+	Novo->pk[1] = Novo->nome[1];
+	Novo->pk[2] = Novo->marca[0];
+	Novo->pk[3] = Novo->marca[1];
+	Novo->pk[4] = Novo->data[0];
+	Novo->pk[5] = Novo->data[1];
+	Novo->pk[6] = Novo->data[3];
+	Novo->pk[7] = Novo->data[4];
+	Novo->pk[8] = Novo->ano[0];
+	Novo->pk[9] = Novo->ano[1]; 
+	Novo->pk[10] = '\0';
+
+}
+ void cadastrar(Indice* iprimary, Indice* ibrand){
+
+	//Código - NÃO é inserido pelo usuário 
+	// char pk[TAM_PRIMARY_KEY];
+	// gerarChave(novo);
+
+	/*-----------------------*/
+
+	/* Interação com o Usuário */
+	Produto Novo;
+	/* CAMPOS DE TAMANHO VARIÁVEL */
+	
+	//Nome do Produto ou Modelo
+	// char Nome[TAM_NOME];
+	scanf("%[^\n]s", Novo.nome);
+	getchar();
+	//Marca
+	// char Marca[TAM_MARCA];
+	scanf("%[^\n]s", Novo.marca);
+	getchar();
+	/*-----------------------*/
+
+	/* CAMPOS DE TAMANHO FIXO */
+
+	//Data de Registro
+	// char Data[TAM_DATA];	/* DD/MM/AAAA */
+	scanf("%[^\n]s", Novo.data);
+	getchar();
+	//Ano de Lançamento
+	// char Ano[TAM_ANO];
+	scanf("%[^\n]s", Novo.ano);
+	getchar();
+	//Preço-Base
+	// char Preço[TAM_PRECO];
+	scanf("%[^\n]s", Novo.preco);
+	getchar();
+	//Desconto
+	// char Desconto[TAM_DESCONTO];
+	scanf("%[^\n]s", Novo.desconto);
+	getchar();
+	//Categorias
+	// char Categoria[TAM_CATEGORIA];
+	scanf("%[^\n]s", Novo.categoria);
+	getchar();
+	/*-----------------------*/
+
+	gerarChave(&Novo);
+
 }
