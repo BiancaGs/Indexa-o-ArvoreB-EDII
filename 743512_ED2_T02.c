@@ -39,7 +39,7 @@
 #define REGISTRO_N_ENCONTRADO 		"Registro(s) nao encontrado!\n"
 #define CAMPO_INVALIDO 				"Campo invalido! Informe novamente.\n"
 #define ERRO_PK_REPETIDA 			"ERRO: Ja existe um registro com a chave primaria: %s.\n"
-#define ARQUIVO_VAZIO 				"Arquivo vazio!\n"
+#define ARQUIVO_VAZIO 				"Arquivo vazio!"
 #define INICIO_BUSCA 				"********************************BUSCAR********************************\n"
 #define INICIO_LISTAGEM				"********************************LISTAR********************************\n"
 #define INICIO_ALTERACAO 			"********************************ALTERAR*******************************\n"
@@ -115,6 +115,7 @@ int tamanho_registro_is;
 
 Produto recuperar_registro(int RRN);
 
+void gerarChave(Produto * Novo);
 
 
 /* ==========================================================================
@@ -302,8 +303,17 @@ int exibir_registro(int rrn)
 }
 
  /*================================= FUNÇÕES ================================*/
+ /* (Re)faz o Cria iprimary*/
+void criar_iprimary(Indice *iprimary){
+
+}
  
- void gerarChave(Produto * Novo){
+/* (Re)faz o índice de jogos  */
+void criar_ibrand(Indice *ibrand){
+
+}
+
+void gerarChave(Produto * Novo){
 
 	Novo->pk[0] = Novo->nome[0];
 	Novo->pk[1] = Novo->nome[1];
@@ -318,6 +328,7 @@ int exibir_registro(int rrn)
 	Novo->pk[10] = '\0';
 
 }
+
  void cadastrar(Indice* iprimary, Indice* ibrand){
 
 	//Código - NÃO é inserido pelo usuário 
@@ -366,4 +377,55 @@ int exibir_registro(int rrn)
 
 	gerarChave(&Novo);
 
+	//Verifica se o PRODUTO existe
+	// if(Busca != NULL) {
+			// printf(ERRO_PK_REPETIDA, Novo->pk);
+			// return;
+ 	// }
+
+	// else{
+		
+		nregistros++;
+
+		//Registro Auxiliar
+		char rAuxiliar[193]; //TAM_REGISTRO
+		rAuxiliar[192] = '\0';
+
+		sprintf(rAuxiliar, "%s@%s@%s@%s@%s@%s@%s@%s@", Novo.pk, Novo.nome, Novo.marca, Novo.data, Novo.ano, Novo.preco, Novo.desconto, Novo.categoria);
+
+		//Precisamos obter o TAMANHO do REGISTRO AUXILIAR (rAuxiliar) para sabermos quantos "bytes" faltam para preencher totalmento o REGISTRO.
+		int Tamanho = strlen(rAuxiliar);
+
+		// printf("\nTamanho = %d\n", Tamanho);
+
+		int i;
+		//Preenchendo o REGISTRO por completo (192bytes)
+		for(i = Tamanho; i < 192; i++)
+			rAuxiliar[i] = '#';
+
+		// printf("\nTamanho - Final = %d", strlen(rAuxiliar));
+		// printf("\n Registro: %s \n", rAuxiliar);
+
+		strcat(ARQUIVO, rAuxiliar);
+
+		//int tRegistro = strlen(rAuxiliar);
+		//printf("%d\n", tRegistro);
+		
+		//printf("%s\n", rAuxiliar);
+		
+		//printf("%s\n", ARQUIVO);
+
+	// }
 }
+
+ int alterar(Indice iprimary){
+
+ }
+ 
+ void buscar(Indice iprimary,Indice ibrand){
+
+ }
+ 
+ void listar(Indice iprimary,Indice ibrand){
+
+ }
