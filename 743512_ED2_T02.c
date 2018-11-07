@@ -79,17 +79,17 @@ typedef struct Chaveis{
 
 /* Estrutura das Árvores-B */
 typedef struct nodeip{
-	int num_chaves;		/* numero de chaves armazenadas*/
+	int num_chaves;			/* numero de chaves armazenadas*/
 	Chave_ip *chave;		/* vetor das chaves e rrns [m-1]*/
-	int *desc;	/* ponteiros para os descendentes, *desc[m]*/
-	char folha;			/* flag folha da arvore*/
+	int *desc;				/* ponteiros para os descendentes, *desc[m]*/
+	char folha;				/* flag folha da arvore*/
 } node_Btree_ip;
 
 typedef struct nodeis{
-	int num_chaves;		/* numero de chaves armazenadas*/
+	int num_chaves;			/* numero de chaves armazenadas*/
 	Chave_is *chave;		/* vetor das chaves e rrns [m-1]*/
-	int *desc;	/* ponteiros para os descendentes, *desc[m]*/
-	char folha;			/* flag folha da arvore*/
+	int *desc;				/* ponteiros para os descendentes, *desc[m]*/
+	char folha;				/* flag folha da arvore*/
 } node_Btree_is;
 
 typedef struct {
@@ -145,15 +145,32 @@ void criar_ibrand(Indice *ibrand) ;
  
 /*Escreve um nó da árvore no arquivo de índice,
 * O terceiro parametro serve para informar qual indice se trata */
-void write_btree(void *salvar, int rrn, char ip);
- 
+
+//void write_btree(void *salvar, int rrn, char ip);
+
+/* ---------------------- */
+void write_btree_ip(node_Btree_ip *salvar, int rrn);
+
+void write_btree_is(node_Btree_is *salvar, int rrn);
+/* ---------------------- */
+
 /*Lê um nó do arquivo de índice e retorna na estrutura*/
-void *read_btree(int rrn, char ip);
+//void *read_btree(int rrn, char ip);
+
+/* ---------------------- */
+node_Btree_ip *read_btree_ip(int rrn);
+
+node_Btree_is *read_btree_is(int rrn);
+/* ---------------------- */
  
 /* Aloca um nó de árvore para ser utilizado em memória primária, o primeiro parametro serve para informar que árvore se trata
 * É conveniente que essa função também inicialize os campos necessários com valores nulos*/
-void *criar_no(char ip);
+//void *criar_no(char ip);
  
+node_Btree_ip *CriarNode_IP();
+
+node_Btree_is *CriarNode_IS();
+
 /*Libera todos os campos dinâmicos do nó, inclusive ele mesmo*/
 void libera_no(void *node, char ip);
  
@@ -189,11 +206,11 @@ int main()
 
 	/* Índice primário */
 	Indice iprimary ;
-	criar_iprimary(&iprimary);
+	//criar_iprimary(&iprimary);
 
 	/* Índice secundário de nomes dos Produtos */
 	Indice ibrand;
-	criar_ibrand(&ibrand);
+	//criar_ibrand(&ibrand);
 
 	/* Execução do programa */
 	int opcao = 0;
@@ -206,18 +223,18 @@ int main()
 			break;
 		case 2: /* Alterar o desconto de um Produto */
 			printf(INICIO_ALTERACAO);
-			if (alterar(iprimary))
-				printf(SUCESSO);
-			else
-				printf(FALHA);
+			// if (alterar(iprimary))
+			// 	printf(SUCESSO);
+			// else
+			// 	printf(FALHA);
 			break;
 		case 3: /* Buscar um Produto */
 			printf(INICIO_BUSCA);
-			buscar(iprimary, ibrand);
+			//buscar(iprimary, ibrand);
 			break;
 		case 4: /* Listar todos os Produtos */
 			printf(INICIO_LISTAGEM);
-			listar(iprimary, ibrand);
+			//listar(iprimary, ibrand);
 			break;
 		case 5: /* Imprimir o arquivo de dados */
 			printf(INICIO_ARQUIVO);
@@ -269,6 +286,30 @@ int carregar_arquivo()
 }
 
 Produto recuperar_registro(int RRN){
+	
+	char Registro[193], *p;
+	strncpy(Registro, ARQUIVO + ((RRN)*192), 192);
+	Registro[192] = '\0';
+
+	Produto A;
+	p = strtok(Registro,"@");
+	strcpy(A.pk,p);
+	p = strtok(NULL,"@");
+	strcpy(A.nome,p);
+	p = strtok(NULL,"@");
+	strcpy(A.marca,p);
+	p = strtok(NULL,"@");
+	strcpy(A.data,p);
+	p = strtok(NULL,"@");
+	strcpy(A.ano,p);
+	p = strtok(NULL,"@");
+	strcpy(A.preco,p);
+	p = strtok(NULL,"@");
+	strcpy(A.desconto,p);
+	p = strtok(NULL,"@");
+	strcpy(A.categoria,p);
+	
+	return A;
 
 }
 
@@ -303,15 +344,58 @@ int exibir_registro(int rrn)
 }
 
  /*================================= FUNÇÕES ================================*/
- /* (Re)faz o Cria iprimary*/
-void criar_iprimary(Indice *iprimary){
+
+void write_btree_ip(node_Btree_ip *salvar, int rrn){
+
+	salvar->num_chaves = ordem_ip-1;
+	//printf("%d\n", salvar->num_chaves );
+
+	//printf("%d\n", tamanho_registro_ip);
+	int Tamanho = tamanho_registro_ip+1;
+	char Filho[Tamanho];
+	Filho[Tamanho-1] = '\0';
+
+	Produto Auxiliar = recuperar_registro(rrn);
+	
+	char PrimaryKey[TAM_PRIMARY_KEY];
+
+	strcpy(PrimaryKey, Auxiliar.pk);
+
+	//printf("Primary Key %s\n", PrimaryKey);
+
+	/*Auxiliar para transformar, caso seja necessário, o número "nregistrosip" em um número de três bytes*/
+	char nRegistrosIP[4];
+
+	/*Auxiliar para transformar, caso seja necessário, o "rrn" em um número de quatro bytes*/ 
+	char RRN[5];
+
+	snprintf(nRegistrosIP, sizeof(nRegistrosIP), "%03d", nregistrosip);
+
+	snprintf(RRN, sizeof(RRN), "%04d", rrn);
+
+	sprintf(Filho, "%s%s%s", nRegistrosIP, PrimaryKey , RRN);
+	
+	nregistrosip++;
+
+	//int TamanhoFilho = strlen(Filho);
+	//printf("Tamanho do Filho %d\n", Tamanho);
+	//printf("%s\n", Filho);
+
+ }
+
+void write_btree_is(node_Btree_is *salvar, int rrn){
+
 
 }
- 
-/* (Re)faz o índice de jogos  */
-void criar_ibrand(Indice *ibrand){
+
+node_Btree_ip *CriarNode_IP(){
 
 }
+
+node_Btree_is *CriarNode_IS(){
+
+}
+
 
 void gerarChave(Produto * Novo){
 
@@ -415,17 +499,25 @@ void gerarChave(Produto * Novo){
 		
 		//printf("%s\n", ARQUIVO);
 
+		node_Btree_ip newNode; //= CriarNode_IP();
+
+		/*O número de registros já foi incrementado, então precisa preciso subtrair um */
+		write_btree_ip(&newNode, nregistros-1);
+	
 	// }
+	
+	
+
 }
 
- int alterar(Indice iprimary){
+//  int alterar(Indice iprimary){
 
- }
+//  }
  
- void buscar(Indice iprimary,Indice ibrand){
+//  void buscar(Indice iprimary,Indice ibrand){
 
- }
+//  }
  
- void listar(Indice iprimary,Indice ibrand){
+//  void listar(Indice iprimary,Indice ibrand){
 
- }
+//  }
