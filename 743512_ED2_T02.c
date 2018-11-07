@@ -167,7 +167,7 @@ node_Btree_is *read_btree_is(int rrn);
 * É conveniente que essa função também inicialize os campos necessários com valores nulos*/
 //void *criar_no(char ip);
  
-node_Btree_ip *CriarNode_IP();
+void CriarNode_IP(node_Btree_ip *newNode);
 
 node_Btree_is *CriarNode_IS();
 
@@ -347,7 +347,7 @@ int exibir_registro(int rrn)
 
 void write_btree_ip(node_Btree_ip *salvar, int rrn){
 
-	salvar->num_chaves = ordem_ip-1;
+	//salvar->num_chaves = ordem_ip-1;
 	//printf("%d\n", salvar->num_chaves );
 
 	//printf("%d\n", tamanho_registro_ip);
@@ -379,7 +379,7 @@ void write_btree_ip(node_Btree_ip *salvar, int rrn){
 
 	//int TamanhoFilho = strlen(Filho);
 	//printf("Tamanho do Filho %d\n", Tamanho);
-	//printf("%s\n", Filho);
+	printf("%s\n", Filho);
 
  }
 
@@ -388,7 +388,27 @@ void write_btree_is(node_Btree_is *salvar, int rrn){
 
 }
 
-node_Btree_ip *CriarNode_IP(){
+void CriarNode_IP(node_Btree_ip *newNode){
+
+	//node_Btree_ip * newNode = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
+	
+	newNode->num_chaves = 0;	
+	
+	int numChaves = ordem_ip-1;
+
+	newNode->chave = (Chave_ip*)malloc(numChaves*sizeof(Chave_ip));
+
+	for(int i = 0; i < numChaves; i++)
+		newNode->chave[i].rrn = -1;
+
+	/* Número máximo de descendentes: "ordem_ip"*/
+	/* Número mínimo de descendentes: "[ordem_ip/2]" (exceto raiz e folhas)*/
+	newNode->desc = (int*)malloc(ordem_ip*sizeof(int));
+
+	for(int i = 0; i < ordem_ip; i++)
+		newNode->desc[i] = -1;
+
+	newNode->folha = 'F';
 
 }
 
@@ -499,10 +519,11 @@ void gerarChave(Produto * Novo){
 		
 		//printf("%s\n", ARQUIVO);
 
-		node_Btree_ip newNode; //= CriarNode_IP();
+		node_Btree_ip * newNode = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
+		CriarNode_IP(newNode);
 
 		/*O número de registros já foi incrementado, então precisa preciso subtrair um */
-		write_btree_ip(&newNode, nregistros-1);
+		write_btree_ip(newNode, nregistros-1);
 	
 	// }
 	
