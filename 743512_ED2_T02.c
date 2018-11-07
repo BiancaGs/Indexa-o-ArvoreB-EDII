@@ -169,7 +169,7 @@ node_Btree_is *read_btree_is(int rrn);
  
 void CriarNode_IP(node_Btree_ip *newNode);
 
-node_Btree_is *CriarNode_IS();
+void CriarNode_IS(node_Btree_is *newNode);
 
 /*Libera todos os campos dinâmicos do nó, inclusive ele mesmo*/
 void libera_no(void *node, char ip);
@@ -347,40 +347,67 @@ int exibir_registro(int rrn)
 
 void write_btree_ip(node_Btree_ip *salvar, int rrn){
 
-	//salvar->num_chaves = ordem_ip-1;
-	//printf("%d\n", salvar->num_chaves );
-
-	//printf("%d\n", tamanho_registro_ip);
-	int Tamanho = tamanho_registro_ip+1;
-	char Filho[Tamanho];
-	Filho[Tamanho-1] = '\0';
-
-	Produto Auxiliar = recuperar_registro(rrn);
+	/* O número máximo de REGISTROS (Chaves) por PÁGINA é de m-1, neste caso ordem_ip-1. 
+	   Logo, primeiro verificar se esta PÁGINA (Nó) não está "COMPLETA"*/
 	
-	char PrimaryKey[TAM_PRIMARY_KEY];
-
-	strcpy(PrimaryKey, Auxiliar.pk);
-
-	//printf("Primary Key %s\n", PrimaryKey);
-
-	/*Auxiliar para transformar, caso seja necessário, o número "nregistrosip" em um número de três bytes*/
-	char nRegistrosIP[4];
-
-	/*Auxiliar para transformar, caso seja necessário, o "rrn" em um número de quatro bytes*/ 
-	char RRN[5];
-
-	snprintf(nRegistrosIP, sizeof(nRegistrosIP), "%03d", nregistrosip);
-
-	snprintf(RRN, sizeof(RRN), "%04d", rrn);
-
-	sprintf(Filho, "%s%s%s", nRegistrosIP, PrimaryKey , RRN);
+	if(salvar->num_chaves < ordem_ip-1){
 	
-	nregistrosip++;
+		salvar->num_chaves++;
+	
+		printf("%d\n", salvar->num_chaves );
 
-	//int TamanhoFilho = strlen(Filho);
-	//printf("Tamanho do Filho %d\n", Tamanho);
-	printf("%s\n", Filho);
+		//printf("%d\n", tamanho_registro_ip);
+		int Tamanho = tamanho_registro_ip+1;
+	
+		char Filho[Tamanho];
+	
+		Filho[Tamanho-1] = '\0';
 
+		Produto Auxiliar = recuperar_registro(rrn);
+		
+		char PrimaryKey[TAM_PRIMARY_KEY];
+
+		strcpy(PrimaryKey, Auxiliar.pk);
+
+		//printf("Primary Key %s\n", PrimaryKey);
+
+		/*Auxiliar para transformar, caso seja necessário, o número "nregistrosip" em um número de três bytes*/
+		char nRegistrosIP[4];
+
+		/*Auxiliar para transformar, caso seja necessário, o "rrn" em um número de quatro bytes*/ 
+		char RRN[5];
+
+		snprintf(nRegistrosIP, sizeof(nRegistrosIP), "%03d", nregistrosip);
+
+		snprintf(RRN, sizeof(RRN), "%04d", rrn);
+
+		sprintf(Filho, "%s%s%s", nRegistrosIP, PrimaryKey , RRN);
+
+		/*Número de "#" que preciso para preencher o vetor*/
+		int numAuxiliar = (ordem_ip-1)- (salvar->num_chaves);
+		numAuxiliar*= 14;
+
+		for(int i = 0; i < numAuxiliar; i++){
+			strcat(Filho, "#");
+		}
+
+
+		/*Adicionar se a página é FOLHA*/
+
+
+		/*Número de "*" que preciso para preencher o vetor*/
+		int numeroAuxiliar = (ordem_ip-1)*3; 
+		for(int i = 0; i < numeroAuxiliar ; i++){
+			strcat(Filho, "*");
+		}
+		
+		nregistrosip++;
+
+		// int TamanhoFilho = strlen(Filho);
+		// printf("Tamanho do Filho %d\n", Tamanho);
+		
+		printf("%s\n", Filho);
+	}
  }
 
 void write_btree_is(node_Btree_is *salvar, int rrn){
@@ -412,7 +439,7 @@ void CriarNode_IP(node_Btree_ip *newNode){
 
 }
 
-node_Btree_is *CriarNode_IS(){
+void CriarNode_IS(node_Btree_is *newNode){
 
 }
 
@@ -519,11 +546,14 @@ void gerarChave(Produto * Novo){
 		
 		//printf("%s\n", ARQUIVO);
 
-		node_Btree_ip * newNode = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
-		CriarNode_IP(newNode);
+		node_Btree_ip * newNode_IP = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
+		CriarNode_IP(newNode_IP);
+
+		// node_Btree_is * newNode_IS = (node_Btree_is*)malloc(sizeof(node_Btree_is));
+		// CriarNode_IS(newNode_IS);
 
 		/*O número de registros já foi incrementado, então precisa preciso subtrair um */
-		write_btree_ip(newNode, nregistros-1);
+		write_btree_ip(newNode_IP, nregistros-1);
 	
 	// }
 	
