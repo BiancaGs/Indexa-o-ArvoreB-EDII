@@ -350,20 +350,30 @@ void write_btree_ip(node_Btree_ip *salvar, int rrn){
 	/* O número máximo de REGISTROS (Chaves) por PÁGINA é de m-1, neste caso ordem_ip-1. 
 	   Logo, primeiro verificar se esta PÁGINA (Nó) não está "COMPLETA"*/
 	
-	if(salvar->num_chaves < ordem_ip-1){
-	
 		salvar->num_chaves++;
-	
-		printf("%d\n", salvar->num_chaves );
-
-		//printf("%d\n", tamanho_registro_ip);
-		int Tamanho = tamanho_registro_ip+1;
-	
-		char Filho[Tamanho];
-	
-		Filho[Tamanho-1] = '\0';
-
+		//printf("%d\n", salvar->num_chaves );
 		Produto Auxiliar = recuperar_registro(rrn);
+
+		// salvar->chave[salvar->num_chaves].rrn = rrn;
+		
+		// strcpy(salvar->chave[salvar->num_chaves].pk, Auxiliar.pk);
+
+		// printf("Numero de Chaves %d\n", salvar->num_chaves);
+		// printf("RRN %d\n", salvar->chave[salvar->num_chaves].rrn);
+
+	
+		printf("%d\n", tamanho_registro_ip);
+		int Tamanho = tamanho_registro_ip+1;
+		printf("%d\n", Tamanho);
+		
+		/*Nova PÁGINA*/	
+		char Filho[Tamanho];
+
+		memset(Filho, 0, sizeof(Filho));
+	
+		// Filho[Tamanho-1] = '\0';
+
+		// Produto Auxiliar = recuperar_registro(rrn);
 		
 		char PrimaryKey[TAM_PRIMARY_KEY];
 
@@ -381,7 +391,16 @@ void write_btree_ip(node_Btree_ip *salvar, int rrn){
 
 		snprintf(RRN, sizeof(RRN), "%04d", rrn);
 
-		sprintf(Filho, "%s%s%s", nRegistrosIP, PrimaryKey , RRN);
+		// sprintf(Filho, "%s%s%s", nRegistrosIP, PrimaryKey , RRN);
+
+		strcat(Filho, nRegistrosIP);
+		
+		strcat(Filho, PrimaryKey);
+
+		strcat(Filho, RRN);
+
+
+
 
 		/*Número de "#" que preciso para preencher o vetor*/
 		int numAuxiliar = (ordem_ip-1)- (salvar->num_chaves);
@@ -391,29 +410,26 @@ void write_btree_ip(node_Btree_ip *salvar, int rrn){
 			strcat(Filho, "#");
 		}
 
-
 		/*Adicionar se a página é FOLHA*/
-
+		char Folha[1];
+		Folha[0] = salvar->folha;
+		strcat(Filho, Folha);
 
 		/*Número de "*" que preciso para preencher o vetor*/
 		int numeroAuxiliar = (ordem_ip-1)*3; 
 		for(int i = 0; i < numeroAuxiliar ; i++){
 			strcat(Filho, "*");
-		}
-		
-		nregistrosip++;
+			}
+
+		strcat(ARQUIVO_IP, Filho);
 
 		// int TamanhoFilho = strlen(Filho);
 		// printf("Tamanho do Filho %d\n", Tamanho);
 		
-		printf("%s\n", Filho);
-	}
+		//printf("%s\n", Filho);
+	
  }
 
-void write_btree_is(node_Btree_is *salvar, int rrn){
-
-
-}
 
 void CriarNode_IP(node_Btree_ip *newNode){
 
@@ -435,7 +451,14 @@ void CriarNode_IP(node_Btree_ip *newNode){
 	for(int i = 0; i < ordem_ip; i++)
 		newNode->desc[i] = -1;
 
+	// strcpy(newNode->folha, 'F');
 	newNode->folha = 'F';
+	//printf("newNode->folha %c", newNode->folha);
+
+}
+
+void write_btree_is(node_Btree_is *salvar, int rrn){
+
 
 }
 
