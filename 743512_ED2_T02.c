@@ -96,6 +96,20 @@ typedef struct {
 	int raiz;
 } Indice;
 
+/* ---------- */
+
+// A função "InsereIP" retorna dois dados, as informações da CHAVE PROMOVIDA, 
+//ou seja, PRIMARY KEY e RRN, e o RRN do FILHO DIREITO para a função "Cadastrar". 
+//Entretando, funções em C não permitem o retorno de duas informações, deste modo
+//precisamos criar uma STRUCT para isso seja possível.
+
+typedef struct{
+	Chave_ip *cPromovida;
+	int fDireito;
+}Dados;
+
+/* ---------- */
+
 /* Variáveis globais */
 char ARQUIVO[MAX_REGISTROS * TAM_REGISTRO + 1];
 char ARQUIVO_IP[2000*sizeof(Chave_ip)];
@@ -117,6 +131,11 @@ Produto recuperar_registro(int RRN);
 
 void gerarChave(Produto * Novo);
 
+//Inserir "Auxiliar"
+Dados InserirIP(int RRN, Chave_ip *Chave);
+
+/* A função splitNode recebe o RRN do NÓ(Página), a CHAVE e o RRN do FILHO DIREITO*/
+Dados splitNode(int node, Chave_ip *Chave, int filhoDireito);
 
 /* ==========================================================================
  * ========================= PROTÓTIPOS DAS FUNÇÕES =========================
@@ -372,8 +391,8 @@ node_Btree_ip *read_btree_ip(int RRN){
 	noAtual->num_chaves = atoi(nChaves);
 	
 	/*COMENTAR*/
-	printf("\nnChaves %s\n", nChaves);
-	printf("noAtual->num_chaves %d\n\n", noAtual->num_chaves);
+	//printf("\nnChaves %s\n", nChaves);
+	//printf("noAtual->num_chaves %d\n\n", noAtual->num_chaves);
 	
 	/*Após recuperar o NÚMERO de CHAVES, movimento três posições para frente o ponteiro*/
 	for(int i=0; i<3; i++)
@@ -388,7 +407,7 @@ node_Btree_ip *read_btree_ip(int RRN){
 		strncpy(noAtual->chave[j].pk, P, 10);
 		
 		/*COMENTAR*/
-		printf("noAtual->chave[j].pk %s\n", noAtual->chave[j].pk);
+		//printf("noAtual->chave[j].pk %s\n", noAtual->chave[j].pk);
 		
 		/*Após isso movimentamos o ponteiro*/
 		int k = 0;
@@ -401,7 +420,7 @@ node_Btree_ip *read_btree_ip(int RRN){
 		strncpy(RRN, P, 4);
 		
 		/*COMENTAR*/
-		printf("RRN %s\n", RRN);
+		//printf("RRN %s\n", RRN);
 		if(strcmp(RRN, "####")==0){
 			noAtual->chave[j].rrn = -1;	
 		}
@@ -409,7 +428,7 @@ node_Btree_ip *read_btree_ip(int RRN){
 			noAtual->chave[j].rrn = atoi(RRN);
 
 		/*COMENTAR*/
-		printf("noAtual->chave[j].rrn %d\n\n", noAtual->chave[j].rrn);
+		//printf("noAtual->chave[j].rrn %d\n\n", noAtual->chave[j].rrn);
 
 		/*Novamente, após isso movimentamos o ponteiro*/
 		k = 0;
@@ -424,7 +443,7 @@ node_Btree_ip *read_btree_ip(int RRN){
 	strncpy(Folha, P, 1);
 
 	/*COMENTAR*/
-	printf("Folha %s\n", Folha);
+	//printf("Folha %s\n", Folha);
 
 	if(strcmp(Folha, "F")== 0)
 		noAtual->folha = 'F';
@@ -432,7 +451,7 @@ node_Btree_ip *read_btree_ip(int RRN){
 		noAtual->folha = 'N';
 
 	/*COMENTAR*/
-	printf("noAtual->folha %c\n\n", noAtual->folha);
+	//printf("noAtual->folha %c\n\n", noAtual->folha);
 
 	*P++;
 
@@ -445,7 +464,7 @@ node_Btree_ip *read_btree_ip(int RRN){
 		strncpy(Descendentes, P, 3);
 
 		/*COMENTAR*/
-		printf("Descendentes %s\n", Descendentes);
+		//printf("Descendentes %s\n", Descendentes);
 
 		if(strcmp(Descendentes, "***")==0)
 			noAtual->desc[j] = -1;
@@ -453,7 +472,7 @@ node_Btree_ip *read_btree_ip(int RRN){
 			noAtual->desc[j] = atoi(Descendentes);
 
 	 	/*COMENTAR*/
-		printf("noAtual->desc[j] %d\n\n", 	noAtual->desc[j]);
+		//printf("noAtual->desc[j] %d\n\n", 	noAtual->desc[j]);
 
 		for(int k = 0; k <3; k++)
 			*P++;
@@ -525,7 +544,10 @@ void write_btree_ip(node_Btree_ip *salvar, int rrn){
 	for(int i = 0; i < Contador*3; i++){
 		strcat(Filho, "*");
 	}
-	strcat(ARQUIVO_IP, Filho);
+
+	char *P = ARQUIVO_IP + ((rrn)*tamanho_registro_ip);
+
+	strncpy(P, Filho, tamanho_registro_ip);
 
  }
 
@@ -555,6 +577,7 @@ void CriarNode_IP(node_Btree_ip *newNode){
 	//printf("newNode->folha %c", newNode->folha);
 
 }
+
 node_Btree_is *read_btree_is(int RRN){
 
 }
@@ -568,6 +591,115 @@ void CriarNode_IS(node_Btree_is *newNode){
 
 }
 
+//Inserir "Auxiliar" - Recebe um nó NÃO VAZIA, no caso recebemos o RRN para recuperarmos o nó com a função "read_btree_ip",
+// e uma Chave(do tipo Chave_ip)
+Dados InserirIP(int RRN, Chave_ip *Chave){
+
+	/*COMENTAR*/
+	// printf("Chave->pk %s\n", Chave->pk);
+	// printf("Chave->rrn %d\n", Chave->rrn);
+	
+	node_Btree_ip *Node = read_btree_ip(RRN);
+	
+	int i = 0;
+
+	if(Node->folha == 'F'){
+		if(Node->num_chaves < ordem_ip-1){
+			
+			i = Node->num_chaves-1;
+			
+			//Comparamos a PrimaryKey da Chave com a do Node até encontrarmos o local correto para inserir
+			while(i >= 0 && strcmp(Chave->pk, Node->chave[i].pk)< 0){ // && k < ci[x] 
+				strcpy(Node->chave[i+1].pk, Node->chave[i].pk);
+				Node->chave[i+1].rrn = Node->chave[i].rrn;
+				i--;
+			}
+			//Insiro a CHAVE e incremento o NÚMERO de CHAVES
+			strcpy(Node->chave[i+1].pk, Chave->pk);
+			Node->chave[i+1].rrn = Chave->rrn;
+			Node->num_chaves++;
+			
+			Dados Resultado;
+			// O valor -1 neste caso representa o retorno NULL
+			Resultado.cPromovida->rrn = -1;
+			Resultado.fDireito = -1;
+
+			write_btree_ip(Node, RRN);
+			//return (NULL, NULL);
+			return (Resultado);
+		}
+		else{
+			//return divideNode(RRN, Chave, NULL);
+		}
+	}
+	else{
+		
+		//Caso a PÁGINA não esteja marcada como FOLHA, procuramos a FOLHA em que desejamos inserir */
+		i = Node->num_chaves-1;
+
+		while(i >= 0 && strcmp(Chave->pk, Node->chave[i].pk)< 0){
+			i--;
+		}
+		i++;
+
+		Dados Resultado = InserirIP(Node->desc[i], Chave);
+
+		//Verificamos se a CHAVE PROMOVIDA é diferente de NULL, neste caso verificamos se o RRN não é -1.
+		//Caso seja atribuimos suas informações a CHAVE.
+		if(Resultado.cPromovida->rrn != -1){
+			
+			strcpy(Chave->pk, Resultado.cPromovida->pk);
+			Chave->rrn = Resultado.cPromovida->rrn;
+
+			if(Node->num_chaves < ordem_ip-1){
+				
+				i = Node->num_chaves-1;
+
+				while(i>=0 && strcmp(Chave->pk, Node->chave[i].pk)< 0){
+					
+					strcpy(Node->chave[i+1].pk, Node->chave[i].pk);
+					Node->chave[i+1].rrn = Node->chave[i].rrn;
+
+					Node->desc[i+2] = Node->desc[i+1];
+
+					i--;
+				}
+
+				strcpy(Node->chave[i].pk, Chave->pk);
+				Node->chave[i].rrn = Chave->rrn;
+
+				Node->desc[i+2] = Resultado.fDireito;
+
+				Node->num_chaves++;
+
+				Dados Resultado;
+				// O valor -1 neste caso representa o retorno NULL
+				Resultado.cPromovida->rrn = -1;
+				Resultado.fDireito = -1;
+
+				write_btree_ip(Node, RRN);
+				//return (NULL, NULL);
+				return (Resultado);
+
+			}
+			else{
+				//return divideNode(RRN, Chave, NULL);			
+			}
+		}
+		else{
+			Dados Resultado;
+			// O valor -1 neste caso representa o retorno NULL
+			Resultado.cPromovida->rrn = -1;
+			Resultado.fDireito = -1;
+
+			write_btree_ip(Node, RRN);
+			//return (NULL, NULL);
+			return (Resultado);
+		}
+	}
+
+
+}
 
 void gerarChave(Produto * Novo){
 
@@ -690,11 +822,48 @@ void gerarChave(Produto * Novo){
 			/*O número de registros já foi incrementado, então precisa preciso subtrair um */
 			write_btree_ip(newNode_IP, 0);
 
-			/*COMENTAR*/
-			read_btree_ip(0);
-
 			// write_btree_is(newNode_IS, 0);
 
+		}
+		// /*Caso 2 - A ARVORE-B NÃO está mais VAZIA*/
+		else{
+			Chave_ip Chave;
+			strcpy(Chave.pk, Novo.pk);
+			Chave.rrn = nregistros-1;
+
+			/*COMENTAR*/
+			// printf("Chave.pk %s\n", Chave.pk);
+			// printf("Chave.rrn %d\n", Chave.rrn);
+
+			//Qual RRN utilizar?
+			Dados Resultado = InserirIP(iprimary->raiz, &Chave);
+
+			/*COMENTAR*/
+			// printf("Resultado.cPromovida->pk %s\n", Resultado.cPromovida->rrn);
+			// printf("%d\n", Resultado.fDireito);
+
+			//Verificamos se CHAVE PROMOVIDA é diferente de NULL, neste caso verificamos se o RRN é diferente de -1
+			if(Resultado.cPromovida->rrn != -1){
+				node_Btree_ip * newNode_IP = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
+				CriarNode_IP(newNode_IP);
+
+				newNode_IP->folha = 'N';
+
+				newNode_IP->num_chaves = 1;
+
+				newNode_IP->chave = Resultado.cPromovida;
+
+				/*?*/
+				newNode_IP->desc[0] = iprimary->raiz;
+
+				newNode_IP->desc[1] = Resultado.fDireito;
+
+				/*? - Linha 21 do PSEUDO CÓDIGO*/
+				iprimary->raiz = nregistrosip;
+
+				write_btree_ip(newNode_IP, nregistrosip);
+				nregistrosip++;
+			}
 		}
 	// }
 	
