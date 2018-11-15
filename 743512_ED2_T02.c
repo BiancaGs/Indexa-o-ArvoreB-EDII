@@ -590,6 +590,90 @@ void write_btree_is(node_Btree_is *salvar, int rrn){
 void CriarNode_IS(node_Btree_is *newNode){
 
 }
+/* A função splitNode recebe o RRN do NÓ(Página), a CHAVE e o RRN do FILHO DIREITO*/
+Dados splitNode(int node, Chave_ip *Chave, int filhoDireito){
+
+	/*COMENTAR*/
+	// printf("Chave->pk %s\n", Chave->pk);
+	// printf("Chave->rrn %d\n", Chave->rrn);
+	// printf("node (RRN) %d\n", node);
+	// printf("filhoDireito (RRN) %d\n", filhoDireito);
+
+	//X
+	node_Btree_ip *Node = read_btree_ip(node);
+	
+	int i = 0;
+	i = Node->num_chaves-1;
+
+	//Flag para CHAVE_ALOCADA - O valor ZERO indica FALSO - Linha 3 do PSEUDO CÓDIGO
+	int flag = 0;
+
+	//Y
+	node_Btree_ip *newNode = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
+	CriarNode_IP(newNode);
+
+	newNode->folha = Node->folha;
+
+	//Preciso utilizar uma função para pegar o 'piso'?
+	newNode->num_chaves = (ordem_ip-1)/2;
+
+	// j > 0 ou j >= 0 ?
+	for(int j = newNode->num_chaves; j > 0; j--){
+		
+		if(!flag && strcmp(Chave->pk, Node->chave[j].pk)>0){
+			
+			strcpy(newNode->chave[j].pk, Chave->pk);
+			newNode->chave[j].rrn = Chave->rrn;
+
+			newNode->desc[j+1] = filhoDireito;
+
+			flag = 1;
+
+		}
+		else{
+			strcpy(newNode->chave[j].pk, Node->chave[j].pk);
+			newNode->chave[j].rrn = Node->chave[j].rrn;
+
+			newNode->desc[j+1] = Node->desc[j+1];
+
+			i--;
+		}
+	}
+
+	if(!flag){
+
+		while(i >= 1 && strcmp(Chave->pk, Node->chave[i].pk) < 0){
+
+			strcpy(Node->chave[i+1].pk, Node->chave[i].pk);
+			Node->chave[i+1].rrn = Node->chave[i].rrn;
+
+			Node->desc[i+2] = Node->desc[i+1];
+
+			i--;
+		}
+
+		strcpy(Node->chave[i+1].pk, Chave->pk);
+		Node->chave[i+1].rrn = Chave->rrn;
+
+		Node->desc[i+2] = filhoDireito;
+
+	}
+
+	Dados Resultado;
+	strcpy(Resultado.cPromovida->pk, Node->chave[ordem_ip/2].pk);
+	Resultado.cPromovida->rrn = Node->chave[ordem_ip/2].rrn;
+
+	newNode->desc[0] = Node->desc[(ordem_ip/2)+1];
+	Node->num_chaves = ordem_ip/2;
+
+	write_btree_ip(Node, node);
+	write_btree_ip(newNode, nregistrosip);
+	nregistrosip++;
+
+	Resultado.fDireito = nregistrosip;
+	return Resultado; 
+	
+}
 
 //Inserir "Auxiliar" - Recebe um nó NÃO VAZIA, no caso recebemos o RRN para recuperarmos o nó com a função "read_btree_ip",
 // e uma Chave(do tipo Chave_ip)
@@ -629,7 +713,8 @@ Dados InserirIP(int RRN, Chave_ip *Chave){
 			return (Resultado);
 		}
 		else{
-			//return divideNode(RRN, Chave, NULL);
+			//O valor -1 para o RRN do FILHO DIREITO na função splitNode é utilizado para representar NULL
+			return splitNode(RRN, Chave, -1);
 		}
 	}
 	else{
@@ -683,7 +768,9 @@ Dados InserirIP(int RRN, Chave_ip *Chave){
 
 			}
 			else{
-				//return divideNode(RRN, Chave, NULL);			
+				//O valor -1 para o RRN do FILHO DIREITO na função splitNode é utilizado para representar NULL
+				return splitNode(RRN, Chave, -1);
+						
 			}
 		}
 		else{
