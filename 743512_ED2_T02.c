@@ -143,7 +143,7 @@ Dados splitNode(int node, Chave_ip *Chave, int filhoDireito);
 // Retorna 0 ou 1 de acordo com o resultado da busca
 int bIP(int RRN, Chave_ip Chave );
 
-
+//Imprime o NÍVEL e o campo da PRIMARY KEY do iPrimary
 void listIP(int RRN, int Level);
 
 
@@ -259,7 +259,7 @@ int main()
 			break;
 		case 3: /* Buscar um Produto */
 			printf(INICIO_BUSCA);
-			//buscar(iprimary, ibrand);
+			buscar(iprimary, ibrand);
 			break;
 		case 4: /* Listar todos os Produtos */
 			printf(INICIO_LISTAGEM);
@@ -1027,16 +1027,85 @@ void gerarChave(Produto * Novo){
 //  int alterar(Indice iprimary){
 
 //  }
+
+//Função auxliar para buscar um PRIMARY KEY inserida pelo usuário.
+//A variavel node recebe o RRN da Raiz inicialmente
+int Buscar_iPrimary(int node, char pk[]){
+
+	node_Btree_ip *Node = read_btree_ip(node);
+
+	int j = 0;
+	for(j = 0; j < Node->num_chaves-1; j++){
+		printf("%s", Node->chave[j].pk);
+		printf(", ");
+	}
+	printf("%s\n", Node->chave[j].pk);
+
+	int i = 0;
+
+	// /*?*/
+	while(i <= Node->num_chaves-1  && strcmp(pk, Node->chave[i].pk) > 0){
+		i++;
+	}
+
+	// /*?*/
+	if(i <= Node->num_chaves-1 && strcmp(pk, Node->chave[i].pk) == 0){
+		/*COMENTAR*/
+		// printf("Chave->pk %s\n", Chave.pk);
+		// printf("Node->chave[i].pk %s\n", Node->chave[i].pk);
+		return Node->chave[i].rrn;
+	}
+
+	if(Node->folha == 'F')
+		return -1;
+	else
+		return Buscar_iPrimary(Node->desc[i], pk);
+
+}
  
-//  void buscar(Indice iprimary,Indice ibrand){
+void buscar(Indice iprimary,Indice ibrand){
 
-//  }
+	
+	int Opcao;
+	scanf("%d", &Opcao);
 
+	char pk[TAM_PRIMARY_KEY];
+
+	switch(Opcao){
+		/*Busca por Código*/
+		case 1:
+			getchar();
+			scanf("%[^\n]s", pk);
+			getchar();
+			printf(NOS_PERCORRIDOS_IP, pk);
+
+			if(iprimary.raiz == -1){
+				printf("\n");
+				printf(REGISTRO_N_ENCONTRADO);
+				return;
+			}
+			
+			int Resultado = Buscar_iPrimary(iprimary.raiz, pk);
+			printf("\n");
+			
+			if(Resultado == -1)
+				printf(REGISTRO_N_ENCONTRADO);
+			else
+				exibir_registro(Resultado);
+		break;
+	}
+
+ }
+
+//Imprime o NÍVEL e o campo da PRIMARY KEY do iPrimary
 void listIP(int RRN, int Level){
 
+	//Nó Vazio - Finaliza a Recursão
 	if(RRN == -1)
 		return;
 	
+	Level++;
+
 	printf("%d - ", Level);
 
 	node_Btree_ip *Node = read_btree_ip(RRN);
@@ -1049,11 +1118,10 @@ void listIP(int RRN, int Level){
 	printf("%s\n", Node->chave[i].pk);
 
 	for(int j = 0; j <= Node->num_chaves; j++){
-		Level++;
 	 	listIP(Node->desc[j], Level);
 	}
-}
 
+}
 
 void listar(Indice iprimary,Indice ibrand){
 
@@ -1065,7 +1133,7 @@ void listar(Indice iprimary,Indice ibrand){
 		if(iprimary.raiz == -1)
 			printf(REGISTRO_N_ENCONTRADO);
 		else
-			listIP(iprimary.raiz, 1);
+			listIP(iprimary.raiz, 0);
 	
 
  }
