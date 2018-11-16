@@ -143,6 +143,10 @@ Dados splitNode(int node, Chave_ip *Chave, int filhoDireito);
 // Retorna 0 ou 1 de acordo com o resultado da busca
 int bIP(int RRN, Chave_ip Chave );
 
+
+void listIP(int RRN, int Level);
+
+
 /* ==========================================================================
  * ========================= PROTÓTIPOS DAS FUNÇÕES =========================
  * ========================================================================== */
@@ -259,7 +263,7 @@ int main()
 			break;
 		case 4: /* Listar todos os Produtos */
 			printf(INICIO_LISTAGEM);
-			//listar(iprimary, ibrand);
+			listar(iprimary, ibrand);
 			break;
 		case 5: /* Imprimir o arquivo de dados */
 			printf(INICIO_ARQUIVO);
@@ -1027,7 +1031,41 @@ void gerarChave(Produto * Novo){
 //  void buscar(Indice iprimary,Indice ibrand){
 
 //  }
- 
-//  void listar(Indice iprimary,Indice ibrand){
 
-//  }
+void listIP(int RRN, int Level){
+
+	if(RRN == -1)
+		return;
+	
+	printf("%d - ", Level);
+
+	node_Btree_ip *Node = read_btree_ip(RRN);
+	int i;
+	
+	for(i = 0; i < Node->num_chaves-1; i++){
+		printf("%s", Node->chave[i].pk);
+		printf(", ");
+	}
+	printf("%s\n", Node->chave[i].pk);
+
+	for(int j = 0; j <= Node->num_chaves; j++){
+		Level++;
+	 	listIP(Node->desc[j], Level);
+	}
+}
+
+
+void listar(Indice iprimary,Indice ibrand){
+
+	int Opcao;
+
+	scanf("%d", &Opcao);
+
+	if(Opcao == 1)
+		if(iprimary.raiz == -1)
+			printf(REGISTRO_N_ENCONTRADO);
+		else
+			listIP(iprimary.raiz, 1);
+	
+
+ }
