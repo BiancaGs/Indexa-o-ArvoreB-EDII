@@ -15,6 +15,8 @@
 #include <ctype.h>
 #include <string.h>
 
+#include <math.h>
+
 /* Tamanho dos campos dos registros */
 #define TAM_PRIMARY_KEY 11
 #define TAM_NOME 51
@@ -104,7 +106,7 @@ typedef struct {
 //precisamos criar uma STRUCT para isso seja possível.
 
 typedef struct{
-	Chave_ip *cPromovida;
+	Chave_ip cPromovida;
 	int fDireito;
 }Dados;
 
@@ -136,6 +138,10 @@ Dados InserirIP(int RRN, Chave_ip *Chave);
 
 /* A função splitNode recebe o RRN do NÓ(Página), a CHAVE e o RRN do FILHO DIREITO*/
 Dados splitNode(int node, Chave_ip *Chave, int filhoDireito);
+
+//Busca Índice Primário - Função auxiliar para evitar a inserção de CHAVES repetidas
+// Retorna 0 ou 1 de acordo com o resultado da busca
+int bIP(int RRN, Chave_ip Chave );
 
 /* ==========================================================================
  * ========================= PROTÓTIPOS DAS FUNÇÕES =========================
@@ -398,7 +404,7 @@ node_Btree_ip *read_btree_ip(int RRN){
 	for(int i=0; i<3; i++)
 		*P++;
 	
-	char PrimaryKey[TAM_PRIMARY_KEY];
+	// char PrimaryKey[TAM_PRIMARY_KEY];
 
 	int j = 0;	
 	while(j < ordem_ip-1){
@@ -407,7 +413,7 @@ node_Btree_ip *read_btree_ip(int RRN){
 		strncpy(noAtual->chave[j].pk, P, 10);
 		
 		/*COMENTAR*/
-		//printf("noAtual->chave[j].pk %s\n", noAtual->chave[j].pk);
+		// printf("noAtual->chave[j].pk %s\n", noAtual->chave[j].pk);
 		
 		/*Após isso movimentamos o ponteiro*/
 		int k = 0;
@@ -535,7 +541,7 @@ void write_btree_ip(node_Btree_ip *salvar, int rrn){
 		}
 		else{
 			/*RRN Índice Primário*/
-			snprintf(RRN, sizeof(RRN), "%04d", salvar->desc[i]);
+			snprintf(RRN, sizeof(RRN), "%03d", salvar->desc[i]);
 			strcat(Filho, RRN);	
 		}
 		i++;
@@ -562,8 +568,10 @@ void CriarNode_IP(node_Btree_ip *newNode){
 
 	newNode->chave = (Chave_ip*)malloc(numChaves*sizeof(Chave_ip));
 
-	for(int i = 0; i < numChaves; i++)
+	for(int i = 0; i < numChaves; i++){
+		memset(newNode->chave[i].pk, '\0', sizeof(newNode->chave[i].pk));
 		newNode->chave[i].rrn = -1;
+	}
 
 	/* Número máximo de descendentes: "ordem_ip"*/
 	/* Número mínimo de descendentes: "[ordem_ip/2]" (exceto raiz e folhas)*/
@@ -590,6 +598,38 @@ void write_btree_is(node_Btree_is *salvar, int rrn){
 void CriarNode_IS(node_Btree_is *newNode){
 
 }
+
+//Busca Índice Primário - Função auxiliar para evitar a inserção de CHAVES repetidas
+// Retorna 0 ou 1 de acordo com o resultado da busca
+ //A função bIP recebe o RRN do NÓ(Página) e uma CHAVE
+int bIP(int node, Chave_ip Chave ){
+
+	
+	node_Btree_ip *Node = read_btree_ip(node);
+
+	int i = 0;
+
+	// /*?*/
+	while(i <= Node->num_chaves-1  && strcmp(Chave.pk, Node->chave[i].pk) > 0){
+		i++;
+	}
+
+	// /*?*/
+	if(i <= Node->num_chaves-1 && strcmp(Chave.pk, Node->chave[i].pk) == 0){
+		/*COMENTAR*/
+		// printf("Chave->pk %s\n", Chave.pk);
+		// printf("Node->chave[i].pk %s\n", Node->chave[i].pk);
+		return 1;
+	}
+
+	if(Node->folha == 'F')
+		return 0;
+	else
+		return bIP(Node->desc[i], Chave);
+
+}
+
+
 /* A função splitNode recebe o RRN do NÓ(Página), a CHAVE e o RRN do FILHO DIREITO*/
 Dados splitNode(int node, Chave_ip *Chave, int filhoDireito){
 
@@ -615,12 +655,12 @@ Dados splitNode(int node, Chave_ip *Chave, int filhoDireito){
 	newNode->folha = Node->folha;
 
 	//Preciso utilizar uma função para pegar o 'piso'?
-	newNode->num_chaves = (ordem_ip-1)/2;
+	newNode->num_chaves = floor((ordem_ip-1)/2);
 
 	// j > 0 ou j >= 0 ?
-	for(int j = newNode->num_chaves; j > 0; j--){
+	for(int j = newNode->num_chaves-1; j >= 0; j--){
 		
-		if(!flag && strcmp(Chave->pk, Node->chave[j].pk)>0){
+		if(!flag && strcmp(Chave->pk, Node->chave[i].pk)>0){
 			
 			strcpy(newNode->chave[j].pk, Chave->pk);
 			newNode->chave[j].rrn = Chave->rrn;
@@ -628,13 +668,12 @@ Dados splitNode(int node, Chave_ip *Chave, int filhoDireito){
 			newNode->desc[j+1] = filhoDireito;
 
 			flag = 1;
-
 		}
 		else{
-			strcpy(newNode->chave[j].pk, Node->chave[j].pk);
-			newNode->chave[j].rrn = Node->chave[j].rrn;
+			strcpy(newNode->chave[j].pk, Node->chave[i].pk);
+			newNode->chave[j].rrn = Node->chave[i].rrn;
 
-			newNode->desc[j+1] = Node->desc[j+1];
+			newNode->desc[j+1] = Node->desc[i+1];
 
 			i--;
 		}
@@ -642,7 +681,7 @@ Dados splitNode(int node, Chave_ip *Chave, int filhoDireito){
 
 	if(!flag){
 
-		while(i >= 1 && strcmp(Chave->pk, Node->chave[i].pk) < 0){
+		while(i >= 0 && strcmp(Chave->pk, Node->chave[i].pk) < 0){
 
 			strcpy(Node->chave[i+1].pk, Node->chave[i].pk);
 			Node->chave[i+1].rrn = Node->chave[i].rrn;
@@ -660,17 +699,28 @@ Dados splitNode(int node, Chave_ip *Chave, int filhoDireito){
 	}
 
 	Dados Resultado;
-	strcpy(Resultado.cPromovida->pk, Node->chave[ordem_ip/2].pk);
-	Resultado.cPromovida->rrn = Node->chave[ordem_ip/2].rrn;
+	strcpy(Resultado.cPromovida.pk, Node->chave[ordem_ip/2].pk);
+	Resultado.cPromovida.rrn = Node->chave[ordem_ip/2].rrn;
+
+	Resultado.fDireito = nregistrosip;
+
+	Node->chave[ordem_ip/2].rrn = -1;
 
 	newNode->desc[0] = Node->desc[(ordem_ip/2)+1];
-	Node->num_chaves = ordem_ip/2;
+	Node->num_chaves = floor(ordem_ip/2);
+
+	//Uma PÁGINA pode conter 'ordem_ip' descendentes, entretanto caso o número de chaves não seja 'ordem_ip-1',
+	//nem todos os descendentes podem existir, deste modo precisamos fazer uma verificação e atualizar os descendentes c
+	//caso haja necessidade. 
+	if(!(Node->num_chaves == ordem_ip-1))
+		for(int j = Node->num_chaves+1; j <= ordem_ip-1; j++)
+			Node->desc[j] = -1;
 
 	write_btree_ip(Node, node);
 	write_btree_ip(newNode, nregistrosip);
-	nregistrosip++;
 
-	Resultado.fDireito = nregistrosip;
+	nregistrosip++;
+	
 	return Resultado; 
 	
 }
@@ -681,9 +731,11 @@ Dados InserirIP(int RRN, Chave_ip *Chave){
 
 	/*COMENTAR*/
 	// printf("Chave->pk %s\n", Chave->pk);
-	// printf("Chave->rrn %d\n", Chave->rrn);
 	
 	node_Btree_ip *Node = read_btree_ip(RRN);
+
+	/*COMENTAR*/
+	// printf("Node->chave[0].pk %s\n", Node->chave[0].pk);
 	
 	int i = 0;
 
@@ -705,7 +757,7 @@ Dados InserirIP(int RRN, Chave_ip *Chave){
 			
 			Dados Resultado;
 			// O valor -1 neste caso representa o retorno NULL
-			Resultado.cPromovida->rrn = -1;
+			Resultado.cPromovida.rrn = -1;
 			Resultado.fDireito = -1;
 
 			write_btree_ip(Node, RRN);
@@ -731,10 +783,10 @@ Dados InserirIP(int RRN, Chave_ip *Chave){
 
 		//Verificamos se a CHAVE PROMOVIDA é diferente de NULL, neste caso verificamos se o RRN não é -1.
 		//Caso seja atribuimos suas informações a CHAVE.
-		if(Resultado.cPromovida->rrn != -1){
+		if(Resultado.cPromovida.rrn != -1){
 			
-			strcpy(Chave->pk, Resultado.cPromovida->pk);
-			Chave->rrn = Resultado.cPromovida->rrn;
+			strcpy(Chave->pk, Resultado.cPromovida.pk);
+			Chave->rrn = Resultado.cPromovida.rrn;
 
 			if(Node->num_chaves < ordem_ip-1){
 				
@@ -750,8 +802,8 @@ Dados InserirIP(int RRN, Chave_ip *Chave){
 					i--;
 				}
 
-				strcpy(Node->chave[i].pk, Chave->pk);
-				Node->chave[i].rrn = Chave->rrn;
+				strcpy(Node->chave[i+1].pk, Chave->pk);
+				Node->chave[i+1].rrn = Chave->rrn;
 
 				Node->desc[i+2] = Resultado.fDireito;
 
@@ -759,7 +811,7 @@ Dados InserirIP(int RRN, Chave_ip *Chave){
 
 				Dados Resultado;
 				// O valor -1 neste caso representa o retorno NULL
-				Resultado.cPromovida->rrn = -1;
+				Resultado.cPromovida.rrn = -1;
 				Resultado.fDireito = -1;
 
 				write_btree_ip(Node, RRN);
@@ -768,15 +820,15 @@ Dados InserirIP(int RRN, Chave_ip *Chave){
 
 			}
 			else{
-				//O valor -1 para o RRN do FILHO DIREITO na função splitNode é utilizado para representar NULL
-				return splitNode(RRN, Chave, -1);
+				/*?*/
+				return splitNode(RRN, Chave, Resultado.fDireito);
 						
 			}
 		}
 		else{
 			Dados Resultado;
 			// O valor -1 neste caso representa o retorno NULL
-			Resultado.cPromovida->rrn = -1;
+			Resultado.cPromovida.rrn = -1;
 			Resultado.fDireito = -1;
 
 			write_btree_ip(Node, RRN);
@@ -784,7 +836,6 @@ Dados InserirIP(int RRN, Chave_ip *Chave){
 			return (Resultado);
 		}
 	}
-
 
 }
 
@@ -852,11 +903,20 @@ void gerarChave(Produto * Novo){
 
 	gerarChave(&Novo);
 
+	Chave_ip bChave;
+	strcpy(bChave.pk, Novo.pk);
+	bChave.rrn = nregistros;
+
+	/*COMENTAR*/
+	// printf("bChave.pk %s\n", bChave.pk);
+	// printf("bChave.rrn %d\n", bChave.rrn);
+
 	//Verifica se o PRODUTO existe
-	// if(Busca != NULL) {
-			// printf(ERRO_PK_REPETIDA, Novo->pk);
-			// return;
- 	// }
+	if(iprimary->raiz != -1)
+		if(bIP(iprimary->raiz, bChave) == 1) {
+			printf(ERRO_PK_REPETIDA, Novo.pk);
+			return;
+		}
 
 	// else{
 		
@@ -909,6 +969,8 @@ void gerarChave(Produto * Novo){
 			/*O número de registros já foi incrementado, então precisa preciso subtrair um */
 			write_btree_ip(newNode_IP, 0);
 
+			nregistrosip++;
+
 			// write_btree_is(newNode_IS, 0);
 
 		}
@@ -930,7 +992,7 @@ void gerarChave(Produto * Novo){
 			// printf("%d\n", Resultado.fDireito);
 
 			//Verificamos se CHAVE PROMOVIDA é diferente de NULL, neste caso verificamos se o RRN é diferente de -1
-			if(Resultado.cPromovida->rrn != -1){
+			if(Resultado.cPromovida.rrn != -1){
 				node_Btree_ip * newNode_IP = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
 				CriarNode_IP(newNode_IP);
 
@@ -938,7 +1000,8 @@ void gerarChave(Produto * Novo){
 
 				newNode_IP->num_chaves = 1;
 
-				newNode_IP->chave = Resultado.cPromovida;
+				strcpy(newNode_IP->chave[0].pk, Resultado.cPromovida.pk);
+				newNode_IP->chave[0].rrn = Resultado.cPromovida.rrn;
 
 				/*?*/
 				newNode_IP->desc[0] = iprimary->raiz;
@@ -949,6 +1012,7 @@ void gerarChave(Produto * Novo){
 				iprimary->raiz = nregistrosip;
 
 				write_btree_ip(newNode_IP, nregistrosip);
+
 				nregistrosip++;
 			}
 		}
