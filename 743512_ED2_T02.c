@@ -140,7 +140,7 @@ Dados splitNode(int node, Chave_ip *Chave, int filhoDireito);
 
 //Busca Índice Primário - Função auxiliar para evitar a inserção de CHAVES repetidas
 // Retorna 0 ou 1 de acordo com o resultado da busca
-int bIP(int RRN, Chave_ip Chave );
+int bIP(int RRN, char pk[] );
 
 //Imprime o NÍVEL e o campo da PRIMARY KEY do iPrimary
 void listIP(int RRN, int Level);
@@ -685,7 +685,7 @@ void CriarNode_IS(node_Btree_is *newNode){
 //Busca Índice Primário - Função auxiliar para evitar a inserção de CHAVES repetidas
 // Retorna 0 ou 1 de acordo com o resultado da busca
  //A função bIP recebe o RRN do NÓ(Página) e uma CHAVE
-int bIP(int node, Chave_ip Chave ){
+int bIP(int node, char pk[] ){
 
 	
 	node_Btree_ip *Node = read_btree_ip(node);
@@ -693,22 +693,22 @@ int bIP(int node, Chave_ip Chave ){
 	int i = 0;
 
 	// /*?*/
-	while(i <= Node->num_chaves-1  && strcmp(Chave.pk, Node->chave[i].pk) > 0){
+	while(i <= Node->num_chaves-1  && strcmp(pk, Node->chave[i].pk) > 0){
 		i++;
 	}
 
 	// /*?*/
-	if(i <= Node->num_chaves-1 && strcmp(Chave.pk, Node->chave[i].pk) == 0){
+	if(i <= Node->num_chaves-1 && strcmp(pk, Node->chave[i].pk) == 0){
 		/*COMENTAR*/
 		// printf("Chave->pk %s\n", Chave.pk);
 		// printf("Node->chave[i].pk %s\n", Node->chave[i].pk);
-		return 1;
+		return Node->chave[i].rrn;
 	}
 
 	if(Node->folha == 'F')
-		return 0;
+		return -1;
 	else
-		return bIP(Node->desc[i], Chave);
+		return bIP(Node->desc[i], pk);
 
 }
 
@@ -986,17 +986,13 @@ void gerarChave(Produto * Novo){
 
 	gerarChave(&Novo);
 
-	Chave_ip bChave;
-	strcpy(bChave.pk, Novo.pk);
-	bChave.rrn = nregistros;
-
 	/*COMENTAR*/
 	// printf("bChave.pk %s\n", bChave.pk);
 	// printf("bChave.rrn %d\n", bChave.rrn);
 
 	//Verifica se o PRODUTO existe
 	if(iprimary->raiz != -1)
-		if(bIP(iprimary->raiz, bChave) == 1) {
+		if(bIP(iprimary->raiz, Novo.pk) >= 0) {
 			printf(ERRO_PK_REPETIDA, Novo.pk);
 			return;
 		}
@@ -1109,6 +1105,13 @@ void gerarChave(Produto * Novo){
 
 	scanf("%[^\n]s", PK);
 	getchar();
+	
+	int RRN = bIP(iprimary.raiz, PK);
+
+	if(iprimary.raiz == -1 || RRN ==-1){
+		printf(REGISTRO_N_ENCONTRADO);
+		return 0;
+	}
 
 	//O desconto inserido precisa ser de 3 bytes com valor entre 000 e 100.
 	char Desconto[3];
@@ -1132,6 +1135,29 @@ void gerarChave(Produto * Novo){
 		if(strcmp(Desconto, "000") >= 0 && strcmp(Desconto, "100") <= 0)
 			flag = 1;
 	}
+	
+	
+	// printf("RRN %d\n", RRN);
+
+	char *Arquivo = ARQUIVO + RRN * 192;
+
+	// printf("%s\n", Arquivo);
+
+	int Contador = 0;
+	while(Contador < 6){
+		if((*Arquivo) == '@')
+			Contador++;
+		Arquivo++;
+	}
+
+	//printf("Contador %d\n", Contador);
+	// printf("%s\n", Arquivo);
+
+	for(int i = 0; i < 3; i++){
+		*Arquivo = Desconto[i];
+		Arquivo++;
+	}
+
 	return 1;
 
  }
