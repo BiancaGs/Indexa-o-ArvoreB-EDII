@@ -66,7 +66,6 @@ typedef struct {
 	char categoria[TAM_CATEGORIA];
 } Produto;
 
-
 /*Estrutura da chave de um nó do Índice Primário*/
 typedef struct Chaveip{
 	char pk[TAM_PRIMARY_KEY];
@@ -145,6 +144,13 @@ int bIP(int RRN, Chave_ip Chave );
 
 //Imprime o NÍVEL e o campo da PRIMARY KEY do iPrimary
 void listIP(int RRN, int Level);
+
+//Função auxliar para buscar um PRIMARY KEY inserida pelo usuário.
+//A variavel node recebe o RRN da Raiz inicialmente
+int Buscar_iPrimary(int node, char pk[]);
+
+//Funcao responsavel por criar o indice primario a partir de um arquivo inicial
+void ciPrimary(Indice * iPrimary);
 
 
 /* ==========================================================================
@@ -237,6 +243,9 @@ int main()
 	Indice iprimary ;
 	criar_iprimary(&iprimary);
 
+	if(carregarArquivo == 1)
+		ciPrimary(&iprimary);
+
 	/* Índice secundário de nomes dos Produtos */
 	Indice ibrand;
 	//criar_ibrand(&ibrand);
@@ -252,10 +261,10 @@ int main()
 			break;
 		case 2: /* Alterar o desconto de um Produto */
 			printf(INICIO_ALTERACAO);
-			// if (alterar(iprimary))
-			// 	printf(SUCESSO);
-			// else
-			// 	printf(FALHA);
+			if (alterar(iprimary))
+				printf(SUCESSO);
+			else
+				printf(FALHA);
 			break;
 		case 3: /* Buscar um Produto */
 			printf(INICIO_BUSCA);
@@ -373,6 +382,76 @@ int exibir_registro(int rrn)
 }
 
  /*================================= FUNÇÕES ================================*/
+void ciPrimary(Indice * iPrimary){
+
+	for(int i = 0; i < nregistros; i++){
+		/* Caso 1 - Insere na Raiz (Raiz == -1 Indica que a ARVORE-B está VAZIA) */
+		if(iPrimary->raiz == -1){
+			node_Btree_ip * newNode_IP = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
+			CriarNode_IP(newNode_IP);
+			
+			// node_Btree_is * newNode_IS = (node_Btree_is*)malloc(sizeof(node_Btree_is));
+			// CriarNode_IS(newNode_IS);
+			
+			newNode_IP->num_chaves++;
+			strcpy(newNode_IP->chave[0].pk, recuperar_registro(i).pk);
+			newNode_IP->chave[0].rrn = i;
+			
+			/*Indica que a ARVORE-B NÃO está mais VAZIA*/
+			iPrimary->raiz = 0;
+			
+			/*O número de registros já foi incrementado, então precisa preciso subtrair um */
+			write_btree_ip(newNode_IP, 0);
+
+			nregistrosip++;
+
+			// write_btree_is(newNode_IS, 0);
+
+		}
+		// /*Caso 2 - A ARVORE-B NÃO está mais VAZIA*/
+		else{
+			Chave_ip Chave;
+			strcpy(Chave.pk, recuperar_registro(i).pk);
+			Chave.rrn = i;
+
+			/*COMENTAR*/
+			// printf("Chave.pk %s\n", Chave.pk);
+			// printf("Chave.rrn %d\n", Chave.rrn);
+
+			//Qual RRN utilizar?
+			Dados Resultado = InserirIP(iPrimary->raiz, &Chave);
+
+			/*COMENTAR*/
+			// printf("Resultado.cPromovida->pk %s\n", Resultado.cPromovida->rrn);
+			// printf("%d\n", Resultado.fDireito);
+
+			//Verificamos se CHAVE PROMOVIDA é diferente de NULL, neste caso verificamos se o RRN é diferente de -1
+			if(Resultado.cPromovida.rrn != -1){
+				node_Btree_ip * newNode_IP = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
+				CriarNode_IP(newNode_IP);
+
+				newNode_IP->folha = 'N';
+
+				newNode_IP->num_chaves = 1;
+
+				strcpy(newNode_IP->chave[0].pk, Resultado.cPromovida.pk);
+				newNode_IP->chave[0].rrn = Resultado.cPromovida.rrn;
+
+				/*?*/
+				newNode_IP->desc[0] = iPrimary->raiz;
+
+				newNode_IP->desc[1] = Resultado.fDireito;
+
+				/*? - Linha 21 do PSEUDO CÓDIGO*/
+				iPrimary->raiz = nregistrosip;
+
+				write_btree_ip(newNode_IP, nregistrosip);
+
+				nregistrosip++;
+			}
+		}
+	}
+}
 
 /* (Re)faz o Cria iprimary*/
 void criar_iprimary(Indice *iprimary){
@@ -1024,9 +1103,38 @@ void gerarChave(Produto * Novo){
 	
 }
 
-//  int alterar(Indice iprimary){
+ int alterar(Indice iprimary){
 
-//  }
+	char PK[TAM_PRIMARY_KEY];
+
+	scanf("%[^\n]s", PK);
+	getchar();
+
+	//O desconto inserido precisa ser de 3 bytes com valor entre 000 e 100.
+	char Desconto[3];
+	
+	int flag = 0;
+			
+	//getchar();
+	scanf("%[^\n]s", Desconto);
+	getchar();
+
+	if(strcmp(Desconto, "000") >= 0 && strcmp(Desconto, "100") <= 0)
+		flag = 1;
+
+	while(flag == 0){	
+		printf(CAMPO_INVALIDO);
+
+		//getchar();	
+		scanf("%[^\n]s", Desconto);
+		getchar();
+		
+		if(strcmp(Desconto, "000") >= 0 && strcmp(Desconto, "100") <= 0)
+			flag = 1;
+	}
+	return 1;
+
+ }
 
 //Função auxliar para buscar um PRIMARY KEY inserida pelo usuário.
 //A variavel node recebe o RRN da Raiz inicialmente
@@ -1126,7 +1234,7 @@ void listIP(int RRN, int Level){
 void listar(Indice iprimary,Indice ibrand){
 
 	int Opcao;
-
+	
 	scanf("%d", &Opcao);
 
 	if(Opcao == 1)
