@@ -109,6 +109,11 @@ typedef struct{
 	int fDireito;
 }Dados;
 
+typedef struct{
+	Chave_is cPromovida_iS;
+	int fDireito_iS;
+}Dados_iS;
+
 /* ---------- */
 
 /* Variáveis globais */
@@ -175,7 +180,7 @@ void ciPrimary(Indice * iPrimary);
 /* (Re)faz o Cria iprimary*/
 void criar_iprimary(Indice *iprimary);
  
-/* (Re)faz o índice de jogos  */
+/* (Re)faz o índice de Produtos  */
 void criar_ibrand(Indice *ibrand) ;
  
 /*Escreve um nó da árvore no arquivo de índice,
@@ -243,12 +248,13 @@ int main()
 	Indice iprimary ;
 	criar_iprimary(&iprimary);
 
+	/* Índice secundário de nomes dos Produtos */
+	Indice ibrand;
+	criar_ibrand(&ibrand);
+
 	if(carregarArquivo == 1)
 		ciPrimary(&iprimary);
 
-	/* Índice secundário de nomes dos Produtos */
-	Indice ibrand;
-	//criar_ibrand(&ibrand);
 
 	/* Execução do programa */
 	int opcao = 0;
@@ -455,10 +461,15 @@ void ciPrimary(Indice * iPrimary){
 
 /* (Re)faz o Cria iprimary*/
 void criar_iprimary(Indice *iprimary){
-	/*Indica que a ARVORE-B está VAZIA*/
+	/*Indica que a ARVORE-B IPRIMARY está VAZIA*/
 	iprimary->raiz = -1;
 }
- 
+
+void criar_ibrand(Indice *ibrand){
+	/*Indica que a ARVORE-B IBRAND está VAZIA*/	
+	ibrand->raiz = -1;
+}
+
 node_Btree_ip *read_btree_ip(int RRN){
 	
 	//Recupera do ARQUIVO_IP
@@ -679,6 +690,28 @@ void write_btree_is(node_Btree_is *salvar, int rrn){
 }
 
 void CriarNode_IS(node_Btree_is *newNode){
+
+	newNode->num_chaves = 0;
+	
+	int numChaves = ordem_is-1;
+
+	newNode->chave = (Chave_is*)malloc(numChaves*sizeof(Chave_is));
+
+	for(int i = 0; i < numChaves; i++){
+		memset(newNode->chave[i].string, '\0', sizeof(newNode->chave[i].string));
+		memset(newNode->chave[i].pk, '\0', sizeof(newNode->chave[i].pk));
+	}
+
+	/* Número máximo de descendentes: "ordem_ip"*/
+	/* Número mínimo de descendentes: "[ordem_ip/2]" (exceto raiz e folhas)*/
+	newNode->desc = (int*)malloc(ordem_is*sizeof(int));
+
+	for(int i = 0; i < ordem_is; i++)
+		newNode->desc[i] = -1;
+
+	// strcpy(newNode->folha, 'F');
+	newNode->folha = 'F';
+	//printf("newNode->folha %c", newNode->folha);
 
 }
 
@@ -1029,7 +1062,7 @@ void gerarChave(Produto * Novo){
 		
 		//printf("%s\n", ARQUIVO);
 		
-
+		/* -------------------------------------------------- */
 		/* Caso 1 - Insere na Raiz (Raiz == -1 Indica que a ARVORE-B está VAZIA) */
 		if(iprimary->raiz == -1){
 			node_Btree_ip * newNode_IP = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
@@ -1045,7 +1078,6 @@ void gerarChave(Produto * Novo){
 			/*Indica que a ARVORE-B NÃO está mais VAZIA*/
 			iprimary->raiz = 0;
 			
-			/*O número de registros já foi incrementado, então precisa preciso subtrair um */
 			write_btree_ip(newNode_IP, 0);
 
 			nregistrosip++;
@@ -1094,6 +1126,37 @@ void gerarChave(Produto * Novo){
 
 				nregistrosip++;
 			}
+		}
+
+		/* --------------------------------------------------*/
+		/* Caso 1 - Insere na Raiz (Raiz == -1 Indica que a ARVORE-B está VAZIA) */
+		if(ibrand->raiz == -1){
+			node_Btree_is * newNode_IS = (node_Btree_is*)malloc(sizeof(node_Btree_is));
+			CriarNode_IS(newNode_IS);
+			
+			newNode_IS->num_chaves++;
+			
+			char string[102];
+			string[101] = '\0';
+
+			strcat(string, Novo.marca);
+			strcat(string, "$");
+			strcat(string, Novo.nome);
+
+			/*COMENTAR*/
+			// printf("%s\n", string);
+
+			strcpy(newNode_IS->chave[0].string, string);
+			strcpy(newNode_IS->chave[0].pk, Novo.pk);
+			
+			/*Indica que a ARVORE-B NÃO está mais VAZIA*/
+			ibrand->raiz = 0;
+			
+			/*O número de registros já foi incrementado, então precisa preciso subtrair um */
+			//write_btree_is(newNode_IS, 0);
+
+			nregistrosis++;
+
 		}
 	// }
 	
