@@ -98,7 +98,6 @@ typedef struct {
 } Indice;
 
 /* ---------- */
-
 // A função "InsereIP" retorna dois dados, as informações da CHAVE PROMOVIDA, 
 //ou seja, PRIMARY KEY e RRN, e o RRN do FILHO DIREITO para a função "Cadastrar". 
 //Entretando, funções em C não permitem o retorno de duas informações, deste modo
@@ -154,13 +153,18 @@ int bIP(int RRN, char pk[] );
 //Imprime o NÍVEL e o campo da PRIMARY KEY do iPrimary
 void listIP(int RRN, int Level);
 
+void listIS(int RRN);
+
 //Função auxliar para buscar um PRIMARY KEY inserida pelo usuário.
 //A variavel node recebe o RRN da Raiz inicialmente
 int Buscar_iPrimary(int node, char pk[]);
 
+char *Buscar_iBrand(int node, char string[]);
+
 //Funcao responsavel por criar o indice primario a partir de um arquivo inicial
 void ciPrimary(Indice * iPrimary);
 
+void ciBrand(Indice * iBrand);
 
 /* ==========================================================================
  * ========================= PROTÓTIPOS DAS FUNÇÕES =========================
@@ -190,27 +194,20 @@ void criar_ibrand(Indice *ibrand) ;
 /*Escreve um nó da árvore no arquivo de índice,
 * O terceiro parametro serve para informar qual indice se trata */
 
-//void write_btree(void *salvar, int rrn, char ip);
-
 /* ---------------------- */
 void write_btree_ip(node_Btree_ip *salvar, int rrn);
 
 void write_btree_is(node_Btree_is *salvar, int rrn);
 /* ---------------------- */
 
-/*Lê um nó do arquivo de índice e retorna na estrutura*/
-//void *read_btree(int rrn, char ip);
-
 /* ---------------------- */
 node_Btree_ip *read_btree_ip(int RRN);
 
 node_Btree_is *read_btree_is(int RRN);
-/* ---------------------- */
- 
+/* ---------------------- */ 
 /* Aloca um nó de árvore para ser utilizado em memória primária, o primeiro parametro serve para informar que árvore se trata
 * É conveniente que essa função também inicialize os campos necessários com valores nulos*/
-//void *criar_no(char ip);
- 
+
 void CriarNode_IP(node_Btree_ip *newNode);
 
 void CriarNode_IS(node_Btree_is *newNode);
@@ -234,10 +231,9 @@ void libera_no(void *node, char ip);
 /* Exibe o jogo */
 int exibir_registro(int rrn);
 
-int main()
-{
+int main(){
 	char *p; /* # */
-  /* Arquivo */
+  	/* Arquivo */
 	int carregarArquivo = 0; nregistros = 0, nregistrosip = 0, nregistrosis = 0;
 	scanf("%d\n", &carregarArquivo); /* 1 (sim) | 0 (nao) */
 	if (carregarArquivo)
@@ -256,9 +252,10 @@ int main()
 	Indice ibrand;
 	criar_ibrand(&ibrand);
 
-	if(carregarArquivo == 1)
+	if(carregarArquivo == 1){
 		ciPrimary(&iprimary);
-
+		ciBrand(&ibrand);
+	}
 
 	/* Execução do programa */
 	int opcao = 0;
@@ -327,8 +324,7 @@ int main()
 
 /* Recebe do usuário uma string simulando o arquivo completo e retorna o número
  * de registros. */
-int carregar_arquivo()
-{
+int carregar_arquivo(){
 	scanf("%[^\n]\n", ARQUIVO);
 	return strlen(ARQUIVO) / TAM_REGISTRO;
 }
@@ -356,14 +352,9 @@ Produto recuperar_registro(int RRN){
 	strcpy(A.desconto,p);
 	p = strtok(NULL,"@");
 	strcpy(A.categoria,p);
-	
 	return A;
-
 }
-
-/* Exibe o Produto */
-int exibir_registro(int rrn)
-{
+int exibir_registro(int rrn){
 	if(rrn < 0)
 		return 0;
 
@@ -390,79 +381,120 @@ int exibir_registro(int rrn)
 
 	return 1;
 }
-
  /*================================= FUNÇÕES ================================*/
 void ciPrimary(Indice * iPrimary){
-
 	for(int i = 0; i < nregistros; i++){
-		/* Caso 1 - Insere na Raiz (Raiz == -1 Indica que a ARVORE-B está VAZIA) */
 		if(iPrimary->raiz == -1){
 			node_Btree_ip * newNode_IP = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
 			CriarNode_IP(newNode_IP);
-			
-			// node_Btree_is * newNode_IS = (node_Btree_is*)malloc(sizeof(node_Btree_is));
-			// CriarNode_IS(newNode_IS);
-			
+
 			newNode_IP->num_chaves++;
 			strcpy(newNode_IP->chave[0].pk, recuperar_registro(i).pk);
 			newNode_IP->chave[0].rrn = i;
-			
-			/*Indica que a ARVORE-B NÃO está mais VAZIA*/
-			iPrimary->raiz = 0;
-			
-			/*O número de registros já foi incrementado, então precisa preciso subtrair um */
+		
+			iPrimary->raiz = 0;	
+
 			write_btree_ip(newNode_IP, 0);
-
 			nregistrosip++;
-
-			// write_btree_is(newNode_IS, 0);
-
 		}
-		// /*Caso 2 - A ARVORE-B NÃO está mais VAZIA*/
 		else{
 			Chave_ip Chave;
 			strcpy(Chave.pk, recuperar_registro(i).pk);
 			Chave.rrn = i;
 
-			/*COMENTAR*/
-			// printf("Chave.pk %s\n", Chave.pk);
-			// printf("Chave.rrn %d\n", Chave.rrn);
-
-			//Qual RRN utilizar?
 			Dados Resultado = InserirIP(iPrimary->raiz, &Chave);
 
-			/*COMENTAR*/
-			// printf("Resultado.cPromovida->pk %s\n", Resultado.cPromovida->rrn);
-			// printf("%d\n", Resultado.fDireito);
-
-			//Verificamos se CHAVE PROMOVIDA é diferente de NULL, neste caso verificamos se o RRN é diferente de -1
 			if(Resultado.cPromovida.rrn != -1){
 				node_Btree_ip * newNode_IP = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
 				CriarNode_IP(newNode_IP);
 
 				newNode_IP->folha = 'N';
-
 				newNode_IP->num_chaves = 1;
 
 				strcpy(newNode_IP->chave[0].pk, Resultado.cPromovida.pk);
 				newNode_IP->chave[0].rrn = Resultado.cPromovida.rrn;
 
-				/*?*/
 				newNode_IP->desc[0] = iPrimary->raiz;
 
 				newNode_IP->desc[1] = Resultado.fDireito;
 
-				/*? - Linha 21 do PSEUDO CÓDIGO*/
 				iPrimary->raiz = nregistrosip;
 
 				write_btree_ip(newNode_IP, nregistrosip);
-
 				nregistrosip++;
 			}
 		}
 	}
 }
 
+void ciBrand(Indice * iBrand){
+	for(int i = 0; i < nregistros; i++){
+		if(iBrand->raiz == -1){
+			node_Btree_is * newNode_IS = (node_Btree_is*)malloc(sizeof(node_Btree_is));
+			CriarNode_IS(newNode_IS);
+			
+			newNode_IS->num_chaves++;
+			
+			char string[102];
+			memset(string, '\0', TAM_STRING_INDICE);
+
+			strcat(string, recuperar_registro(i).marca);
+			strcat(string, "$");
+			strcat(string, recuperar_registro(i).nome);
+
+			int Tamanho = strlen(string);
+
+			for(int j = 0; j < 101-Tamanho; j++)
+				strcat(string, "#");
+			
+			strcpy(newNode_IS->chave[0].string, string);
+			strcpy(newNode_IS->chave[0].pk, recuperar_registro(i).pk);
+			
+			iBrand->raiz = 0;
+			
+			write_btree_is(newNode_IS, 0);
+			nregistrosis++;
+		}
+		else{
+			Chave_is ChaveIS;
+			strcpy(ChaveIS.pk, recuperar_registro(i).pk);
+
+			char string[102];
+			memset(string, '\0', TAM_STRING_INDICE);
+
+			strcat(string, recuperar_registro(i).marca);
+			strcat(string, "$");
+			strcat(string, recuperar_registro(i).nome);
+			
+			int Tamanho = strlen(string);
+
+			for(int j = 0; j < 101-Tamanho; j++)
+				strcat(string, "#");
+			
+			strcpy(ChaveIS.string, string);
+
+			Dados_iS Resultado_IS = InserirIS(iBrand->raiz, &ChaveIS);
+			
+			if(Resultado_IS.cPromovida_iS.string[0] != '\0'){
+				node_Btree_is * newNode_IS = (node_Btree_is*)malloc(sizeof(node_Btree_is));
+				CriarNode_IS(newNode_IS);
+				
+				newNode_IS->folha = 'N';
+				newNode_IS->num_chaves = 1;
+				
+				strcpy(newNode_IS->chave[0].pk, Resultado_IS.cPromovida_iS.pk);
+				strcpy(newNode_IS->chave[0].string, Resultado_IS.cPromovida_iS.string);
+				
+				newNode_IS->desc[0] = iBrand->raiz;
+				newNode_IS->desc[1] = Resultado_IS.fDireito_iS;
+				iBrand->raiz = nregistrosis;
+
+				write_btree_is(newNode_IS, nregistrosis);
+				nregistrosis++;
+			}
+		}
+	}
+}
 /* (Re)faz o Cria iprimary*/
 void criar_iprimary(Indice *iprimary){
 	/*Indica que a ARVORE-B IPRIMARY está VAZIA*/
@@ -475,12 +507,6 @@ void criar_ibrand(Indice *ibrand){
 }
 
 node_Btree_ip *read_btree_ip(int RRN){
-	
-	//Recupera do ARQUIVO_IP
-	// char Pagina[tamanho_registro_ip+1];
-	// strncpy(Pagina, ARQUIVO_IP + ((RRN)*tamanho_registro_ip), tamanho_registro_ip);
-	// Pagina[tamanho_registro_ip] = '\0';
-
 	node_Btree_ip * noAtual = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
 	CriarNode_IP(noAtual);
 
@@ -493,25 +519,19 @@ node_Btree_ip *read_btree_ip(int RRN){
 	strncpy(nChaves, P, 3);
 	/*Por conseguinte, precisamos atualizar está informação no noAtual*/
 	noAtual->num_chaves = atoi(nChaves);
-	
-	/*COMENTAR*/
+
 	//printf("\nnChaves %s\n", nChaves);
 	//printf("noAtual->num_chaves %d\n\n", noAtual->num_chaves);
 	
 	/*Após recuperar o NÚMERO de CHAVES, movimento três posições para frente o ponteiro*/
 	for(int i=0; i<3; i++)
 		*P++;
-	
-	// char PrimaryKey[TAM_PRIMARY_KEY];
 
 	int j = 0;	
 	while(j < ordem_ip-1){
-
 		/*Recuperamos a PRIMARY KEY de 10 bytes*/
 		strncpy(noAtual->chave[j].pk, P, 10);
-		
-		/*COMENTAR*/
-		// printf("noAtual->chave[j].pk %s\n", noAtual->chave[j].pk);
+		// printf("noAtual->chave[j].pk %s\n", noAtual->chave[j].pk);		
 		
 		/*Após isso movimentamos o ponteiro*/
 		int k = 0;
@@ -523,15 +543,11 @@ node_Btree_ip *read_btree_ip(int RRN){
 		RRN[4] = '\0';
 		strncpy(RRN, P, 4);
 		
-		/*COMENTAR*/
 		//printf("RRN %s\n", RRN);
-		if(strcmp(RRN, "####")==0){
+		if(strcmp(RRN, "####")==0)
 			noAtual->chave[j].rrn = -1;	
-		}
 		else
 			noAtual->chave[j].rrn = atoi(RRN);
-
-		/*COMENTAR*/
 		//printf("noAtual->chave[j].rrn %d\n\n", noAtual->chave[j].rrn);
 
 		/*Novamente, após isso movimentamos o ponteiro*/
@@ -541,41 +557,28 @@ node_Btree_ip *read_btree_ip(int RRN){
 
 		j++;
 	}
-
 	char Folha[2];
 	Folha[1] = '\0';
 	strncpy(Folha, P, 1);
-
-	/*COMENTAR*/
 	//printf("Folha %s\n", Folha);
 
 	if(strcmp(Folha, "F")== 0)
 		noAtual->folha = 'F';
 	else	
 		noAtual->folha = 'N';
-
-	/*COMENTAR*/
 	//printf("noAtual->folha %c\n\n", noAtual->folha);
-
 	*P++;
 
 	j =0;
-	/*DESCENTES - ORDEM_IP*/
-	while(j < ordem_ip){
-		
+	while(j < ordem_ip){	
 		char Descendentes[4];
 		Descendentes[3] = '\0';
 		strncpy(Descendentes, P, 3);
-
-		/*COMENTAR*/
 		//printf("Descendentes %s\n", Descendentes);
-
 		if(strcmp(Descendentes, "***")==0)
 			noAtual->desc[j] = -1;
 		else
 			noAtual->desc[j] = atoi(Descendentes);
-
-	 	/*COMENTAR*/
 		//printf("noAtual->desc[j] %d\n\n", 	noAtual->desc[j]);
 
 		for(int k = 0; k <3; k++)
@@ -586,30 +589,22 @@ node_Btree_ip *read_btree_ip(int RRN){
 	return noAtual;
 }
 
-void write_btree_ip(node_Btree_ip *salvar, int rrn){
-		
+void write_btree_ip(node_Btree_ip *salvar, int rrn){		
 	/*Nova PÁGINA*/	
 	char Filho[tamanho_registro_ip+1];
-
-	memset(Filho, 0, sizeof(Filho));
-
+	memset(Filho, '\0', sizeof(Filho));
 	/*Auxiliar para transformar, caso seja necessário, o número "nregistrosip" em um número de três bytes*/
 	char nChaves[4];
-
 	snprintf(nChaves, sizeof(nChaves), "%03d", salvar->num_chaves);
-	
 	strcat(Filho, nChaves);
-
 	/*Auxiliar para transformar, caso seja necessário, o "rrn" em um número de quatro bytes*/ 
 	char RRN[5];
 
 	int i = 0;
 	int Contador = 0;
-	
 	while(i < ordem_ip-1){
-		if(salvar->chave[i].rrn == -1){
+		if(salvar->chave[i].rrn == -1)
 			Contador++;
-		}
 		else{
 			strcat(Filho, salvar->chave[i].pk);
 			snprintf(RRN, sizeof(RRN), "%04d", salvar->chave[i].rrn);
@@ -617,60 +612,43 @@ void write_btree_ip(node_Btree_ip *salvar, int rrn){
 		}
 		i++;
 	}
-
 	/*Número de "#" que preciso para preencher o vetor*/
-	for(int i = 0; i < Contador*14; i++){
+	for(int i = 0; i < Contador*14; i++)
 		strcat(Filho, "#");
-	}
 
 	/*Adicionar se a página é FOLHA*/
 	if(salvar->folha == 'N')
 		strcat(Filho, "N");
 	else	
 		strcat(Filho, "F");
-
-	// printf("%c\n", salvar->folha);
-
 	i = 0;
 	Contador = 0;
 	while(i < ordem_ip){
-		if(salvar->desc[i] == -1){
+		if(salvar->desc[i] == -1)
 			Contador++;
-		}
 		else{
-			/*RRN Índice Primário*/
 			snprintf(RRN, sizeof(RRN), "%03d", salvar->desc[i]);
 			strcat(Filho, RRN);	
 		}
 		i++;
 	}
-	/*Número de "*" que preciso para preencher o vetor*/ 
-	for(int i = 0; i < Contador*3; i++){
+	for(int i = 0; i < Contador*3; i++)
 		strcat(Filho, "*");
-	}
 
 	char *P = ARQUIVO_IP + ((rrn)*tamanho_registro_ip);
-
 	strncpy(P, Filho, tamanho_registro_ip);
-
  }
-
 
 void CriarNode_IP(node_Btree_ip *newNode){
 
-	//node_Btree_ip * newNode = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
-	
-	newNode->num_chaves = 0;	
-	
+	newNode->num_chaves = 0;		
 	int numChaves = ordem_ip-1;
-
 	newNode->chave = (Chave_ip*)malloc(numChaves*sizeof(Chave_ip));
 
 	for(int i = 0; i < numChaves; i++){
 		memset(newNode->chave[i].pk, '\0', sizeof(newNode->chave[i].pk));
 		newNode->chave[i].rrn = -1;
 	}
-
 	/* Número máximo de descendentes: "ordem_ip"*/
 	/* Número mínimo de descendentes: "[ordem_ip/2]" (exceto raiz e folhas)*/
 	newNode->desc = (int*)malloc(ordem_ip*sizeof(int));
@@ -678,18 +656,9 @@ void CriarNode_IP(node_Btree_ip *newNode){
 	for(int i = 0; i < ordem_ip; i++)
 		newNode->desc[i] = -1;
 
-	// strcpy(newNode->folha, 'F');
 	newNode->folha = 'F';
-	//printf("newNode->folha %c", newNode->folha);
-
 }
-
 node_Btree_is *read_btree_is(int RRN){
-	//Recupera do ARQUIVO_IP
-	// char Pagina[tamanho_registro_ip+1];
-	// strncpy(Pagina, ARQUIVO_IP + ((RRN)*tamanho_registro_ip), tamanho_registro_ip);
-	// Pagina[tamanho_registro_ip] = '\0';
-
 	node_Btree_is * noAtual = (node_Btree_is*)malloc(sizeof(node_Btree_is));
 	CriarNode_IS(noAtual);
 
@@ -702,79 +671,50 @@ node_Btree_is *read_btree_is(int RRN){
 	strncpy(nChaves, P, 3);
 	/*Por conseguinte, precisamos atualizar está informação no noAtual*/
 	noAtual->num_chaves = atoi(nChaves);
-	
-	/*COMENTAR*/
 	//printf("\nnChaves %s\n", nChaves);
 	//printf("noAtual->num_chaves %d\n\n", noAtual->num_chaves);
 	
 	/*Após recuperar o NÚMERO de CHAVES, movimento três posições para frente o ponteiro*/
 	for(int i=0; i<3; i++)
 		*P++;
-	
-	// char PrimaryKey[TAM_PRIMARY_KEY];
 
 	int j = 0;	
 	while(j < ordem_is-1){
-
 		/*Recuperamos a PRIMARY KEY de 10 bytes*/
 		strncpy(noAtual->chave[j].pk, P, 10);
-		
-		/*COMENTAR*/
-		// printf("noAtual->chave[j].pk %s\n", noAtual->chave[j].pk);
-		
 		/*Após isso movimentamos o ponteiro*/
 		int k = 0;
 		for(k=0; k<10; k++ )
 			*P++;
 
 		strncpy(noAtual->chave[j].string, P, 101);
-		
-		/*COMENTAR*/
-		//printf("noAtual->chave[j].string %d\n\n", noAtual->chave[j].string);
 
 		/*Novamente, após isso movimentamos o ponteiro*/
 		k = 0;
 		for(k=0; k<101; k++)
 			*P++;
-
 		j++;
 	}
-
 	char Folha[2];
 	Folha[1] = '\0';
 	strncpy(Folha, P, 1);
-
-	/*COMENTAR*/
-	//printf("Folha %s\n", Folha);
 
 	if(strcmp(Folha, "F")== 0)
 		noAtual->folha = 'F';
 	else	
 		noAtual->folha = 'N';
-
-	/*COMENTAR*/
-	//printf("noAtual->folha %c\n\n", noAtual->folha);
-
 	*P++;
 
 	j =0;
-	/*DESCENTES - ORDEM_IS*/
 	while(j < ordem_is){
-		
 		char Descendentes[4];
 		Descendentes[3] = '\0';
 		strncpy(Descendentes, P, 3);
-
-		/*COMENTAR*/
-		//printf("Descendentes %s\n", Descendentes);
 
 		if(strcmp(Descendentes, "***")==0)
 			noAtual->desc[j] = -1;
 		else
 			noAtual->desc[j] = atoi(Descendentes);
-
-	 	/*COMENTAR*/
-		//printf("noAtual->desc[j] %d\n\n", 	noAtual->desc[j]);
 
 		for(int k = 0; k <3; k++)
 			*P++;
@@ -782,68 +722,35 @@ node_Btree_is *read_btree_is(int RRN){
 		j++;
 	}
 	return noAtual;
-
 }
 
 void write_btree_is(node_Btree_is *salvar, int rrn){
-		
-	/*Nova PÁGINA*/	
 	char Filho[tamanho_registro_is+1];
-
-	memset(Filho, 0, sizeof(Filho));
-
+	memset(Filho, '\0', sizeof(Filho));
 	/*Auxiliar para transformar, caso seja necessário, o número "nregistrosip" em um número de três bytes*/
 	char nChaves[4];
 	nChaves[3] = '\0';
-
 	snprintf(nChaves, sizeof(nChaves), "%03d", salvar->num_chaves);
-	
 	strcat(Filho, nChaves);
 
 	int i = 0;
-
 	int Contador = 0;
-	
 	while(i < ordem_is-1){
-		if(salvar->chave[i].string[0] == '\0'){
+		if(salvar->chave[i].string[0] == '\0')
 			Contador++;
-		}
 		else{
 			strcat(Filho, salvar->chave[i].pk);
 			strcat(Filho, salvar->chave[i].string);
-			
-			// printf("salvar->chave[i].pk %s\n", salvar->chave[i].pk);
-			// printf("salvar->chave[i].string %s\n\n", salvar->chave[i].string);
-			
-			// /* ---------- */
-			// int Tamanho = strlen(salvar->chave[i].string);
-			
-			// /*COMENTAR*/
-			// //printf("Tamanho - String %d\n", Tamanho);
-
-
-			// for(int j=0; j<Tamanho-101; j++){
-			// 	strcat(salvar->chave[i].string, "#");
-			// }
-			
-			/* ---------- */
-
 		}
 		i++;
 	}
-
-	/*Número de "#" que preciso para preencher o vetor*/
-	for(int i = 0; i < Contador*111; i++){
+	for(int i = 0; i < Contador*111; i++)
 		strcat(Filho, "#");
-	}
 	
-	/*Adicionar se a página é FOLHA*/
 	if(salvar->folha == 'N')
 		strcat(Filho, "N");
 	else	
 		strcat(Filho, "F");
-
-	// printf("%c\n", salvar->folha);
 
 	char RRN[5];
 	RRN[4] = '\0';
@@ -851,168 +758,110 @@ void write_btree_is(node_Btree_is *salvar, int rrn){
 	i = 0;
 	Contador = 0;
 	while(i < ordem_is){
-		if(salvar->desc[i] == -1){
+		if(salvar->desc[i] == -1)
 			Contador++;
-		}
 		else{
-			/*RRN Índice Primário*/
 			snprintf(RRN, sizeof(RRN), "%03d", salvar->desc[i]);
 			strcat(Filho, RRN);	
 		}
 		i++;
 	}
-	/*Número de "*" que preciso para preencher o vetor*/ 
-	for(int i = 0; i < Contador*3; i++){
+	for(int i = 0; i < Contador*3; i++)
 		strcat(Filho, "*");
-	}
 
 	char *P = ARQUIVO_IS + ((rrn)*tamanho_registro_is);
-
 	strncpy(P, Filho, tamanho_registro_is);
-
-	//printf("Filho (IS) %s\n", Filho);
-
  }
-	
-
 
 void CriarNode_IS(node_Btree_is *newNode){
-
 	newNode->num_chaves = 0;
-	
 	int numChaves = ordem_is-1;
-
 	newNode->chave = (Chave_is*)malloc(numChaves*sizeof(Chave_is));
 
 	for(int i = 0; i < numChaves; i++){
 		memset(newNode->chave[i].string, '\0', sizeof(newNode->chave[i].string));
 		memset(newNode->chave[i].pk, '\0', sizeof(newNode->chave[i].pk));
 	}
-
-	/* Número máximo de descendentes: "ordem_is"*/
-	/* Número mínimo de descendentes: "[ordem_is/2]" (exceto raiz e folhas)*/
 	newNode->desc = (int*)malloc(ordem_is*sizeof(int));
 
 	for(int i = 0; i < ordem_is; i++)
 		newNode->desc[i] = -1;
 
-	// strcpy(newNode->folha, 'F');
 	newNode->folha = 'F';
-	//printf("newNode->folha %c", newNode->folha);
-
 }
 
 Dados_iS splitNodeIS(int node, Chave_is *Chave, int filhoDireito){
-	/*COMENTAR*/
-	// printf("Chave->pk %s\n", Chave->pk);
-	// printf("Chave->rrn %d\n", Chave->rrn);
-	// printf("node (RRN) %d\n", node);
-	// printf("filhoDireito (RRN) %d\n", filhoDireito);
-
-	//X
 	node_Btree_is *Node = read_btree_is(node);
-	
+
 	int i = 0;
 	i = Node->num_chaves-1;
-
 	//Flag para CHAVE_ALOCADA - O valor ZERO indica FALSO - Linha 3 do PSEUDO CÓDIGO
 	int flag = 0;
-
 	//Y
 	node_Btree_is *newNode = (node_Btree_is*)malloc(sizeof(node_Btree_is));
 	CriarNode_IS(newNode);
 
 	newNode->folha = Node->folha;
-
 	//Preciso utilizar uma função para pegar o 'piso'?
 	newNode->num_chaves = floor((ordem_is-1)/2);
 
-	// j > 0 ou j >= 0 ?
-	for(int j = newNode->num_chaves-1; j >= 0; j--){
-		
-		if(!flag && strcmp(Chave->pk, Node->chave[i].pk)>0){
-			
+	for(int j = newNode->num_chaves-1; j >= 0; j--){		
+		if(!flag && strcmp(Chave->string, Node->chave[i].string)>0){
 			strcpy(newNode->chave[j].pk, Chave->pk);
 			strcpy(newNode->chave[j].string, Chave->string);
-
 			newNode->desc[j+1] = filhoDireito;
-
 			flag = 1;
 		}
 		else{
 			strcpy(newNode->chave[j].pk, Node->chave[i].pk);
 			strcpy(newNode->chave[j].string, Node->chave[i].string);
-	
 			newNode->desc[j+1] = Node->desc[i+1];
-
 			i--;
 		}
 	}
-
 	if(!flag){
-
-		while(i >= 0 && strcmp(Chave->pk, Node->chave[i].pk) < 0){
-
+		while(i >= 0 && strcmp(Chave->string, Node->chave[i].string) < 0){
 			strcpy(Node->chave[i+1].pk, Node->chave[i].pk);
 			strcpy(Node->chave[i+1].string, Node->chave[i].string);
-
 			Node->desc[i+2] = Node->desc[i+1];
-
 			i--;
 		}
-
 		strcpy(Node->chave[i+1].pk, Chave->pk);
 		strcpy(Node->chave[i+1].string, Chave->string);
-
 		Node->desc[i+2] = filhoDireito;
-
 	}
-
 	Dados_iS Resultado;
 	strcpy(Resultado.cPromovida_iS.pk, Node->chave[ordem_is/2].pk);
 	strcpy(Resultado.cPromovida_iS.string, Node->chave[ordem_is/2].string);
 
 	Resultado.fDireito_iS = nregistrosis;
-
-	Node->chave[ordem_is/2].string[0] = '\0';
-
 	newNode->desc[0] = Node->desc[(ordem_is/2)+1];
 	Node->num_chaves = floor(ordem_is/2);
+
+	for(int k=ordem_is/2; k<ordem_is; k++)
+		Node->chave[k].string[0] = '\0';
 
 	//Uma PÁGINA pode conter 'ordem_is' descendentes, entretanto caso o número de chaves não seja 'ordem_is-1',
 	//nem todos os descendentes podem existir, deste modo precisamos fazer uma verificação e atualizar os descendentes c
 	//caso haja necessidade. 
-	if(!(Node->num_chaves == ordem_is-1))
-		for(int j = Node->num_chaves+1; j <= ordem_is-1; j++)
-			Node->desc[j] = -1;
+
+	for(int j = Node->num_chaves+1; j <= ordem_is-1; j++)
+		Node->desc[j] = -1;
 
 	write_btree_is(Node, node);
 	write_btree_is(newNode, nregistrosis);
-
 	nregistrosis++;
-	
 	return Resultado; 
-	
 }
 
 Dados_iS InserirIS(int RRN, Chave_is *Chave){
-		/*COMENTAR*/
-	// printf("Chave->pk %s\n", Chave->pk);
-	
 	node_Btree_is *Node = read_btree_is(RRN);
-
-	/*COMENTAR*/
-	// printf("Node->chave[0].pk %s\n", Node->chave[0].pk);
-	
 	int i = 0;
-
 	if(Node->folha == 'F'){
-		if(Node->num_chaves < ordem_is-1){
-			
+		if(Node->num_chaves < ordem_is-1){			
 			i = Node->num_chaves-1;
-			
 			//Comparamos a PrimaryKey da Chave com a do Node até encontrarmos o local correto para inserir
-			while(i >= 0 && strcmp(Chave->pk, Node->chave[i].pk)< 0){ // && k < ci[x] 
+			while(i >= 0 && strcmp(Chave->string, Node->chave[i].string)< 0){ // && k < ci[x] 
 				strcpy(Node->chave[i+1].string, Node->chave[i].string);
 				strcpy(Node->chave[i+1].pk, Node->chave[i].pk);
 				i--;
@@ -1023,55 +872,37 @@ Dados_iS InserirIS(int RRN, Chave_is *Chave){
 			Node->num_chaves++;
 			
 			Dados_iS Resultado;
-			// O valor -1 neste caso representa o retorno NULL
-			//memset(Resultado.cPromovida_iS.pk, '\0', TAM_PRIMARY_KEY);
-			//memset(Resultado.cPromovida_iS.string, '\0', 101);
 			Resultado.cPromovida_iS.pk[0] = '\0';
 			Resultado.cPromovida_iS.string[0] = '\0';
 			Resultado.fDireito_iS = -1;
 
 			write_btree_is(Node, RRN);
-			//return (NULL, NULL);
 			return (Resultado);
 		}
-		else{
-			//O valor -1 para o RRN do FILHO DIREITO na função splitNode é utilizado para representar NULL
+		else
 			return splitNodeIS(RRN, Chave, -1);
-		}
 	}
 	else{
-		
 		//Caso a PÁGINA não esteja marcada como FOLHA, procuramos a FOLHA em que desejamos inserir */
 		i = Node->num_chaves-1;
-
-		while(i >= 0 && strcmp(Chave->pk, Node->chave[i].pk)< 0){
+		while(i >= 0 && strcmp(Chave->string, Node->chave[i].string)< 0){
 			i--;
 		}
 		i++;
-
 		Dados_iS Resultado = InserirIS(Node->desc[i], Chave);
-
 		//Verificamos se a CHAVE PROMOVIDA é diferente de NULL, neste caso verificamos se o RRN não é -1.
 		//Caso seja atribuimos suas informações a CHAVE.
-		if(Resultado.cPromovida_iS.pk[0] != '\0'){
-			
+		if(Resultado.cPromovida_iS.string[0] != '\0'){
 			strcpy(Chave->pk, Resultado.cPromovida_iS.pk);
 			strcpy(Chave->string, Resultado.cPromovida_iS.string);
-			
 			if(Node->num_chaves < ordem_is-1){
-				
 				i = Node->num_chaves-1;
-
-				while(i>=0 && strcmp(Chave->pk, Node->chave[i].pk)< 0){
-					
+				while(i>=0 && strcmp(Chave->string, Node->chave[i].string)< 0){
 					strcpy(Node->chave[i+1].pk, Node->chave[i].pk);
 					strcpy(Node->chave[i+1].string, Node->chave[i].string);
-					
 					Node->desc[i+2] = Node->desc[i+1];
-
 					i--;
 				}
-
 				strcpy(Node->chave[i+1].pk, Chave->pk);
 				strcpy(Node->chave[i+1].string, Chave->string);
 
@@ -1086,15 +917,10 @@ Dados_iS InserirIS(int RRN, Chave_is *Chave){
 				Resultado.fDireito_iS = -1;
 
 				write_btree_is(Node, RRN);
-				//return (NULL, NULL);
 				return (Resultado);
-
 			}
-			else{
-				/*?*/
-				return splitNodeIS(RRN, Chave, Resultado.fDireito_iS);
-						
-			}
+			else
+				return splitNodeIS(RRN, Chave, Resultado.fDireito_iS);				
 		}
 		else{
 			Dados_iS Resultado;
@@ -1104,34 +930,20 @@ Dados_iS InserirIS(int RRN, Chave_is *Chave){
 			Resultado.fDireito_iS = -1;
 
 			write_btree_is(Node, RRN);
-			//return (NULL, NULL);
 			return (Resultado);
 		}
 	}
 }
 
-
-
-//Busca Índice Primário - Função auxiliar para evitar a inserção de CHAVES repetidas
-// Retorna 0 ou 1 de acordo com o resultado da busca
- //A função bIP recebe o RRN do NÓ(Página) e uma CHAVE
-int bIP(int node, char pk[] ){
-
-	
+int bIP(int node, char pk[] ){	
 	node_Btree_ip *Node = read_btree_ip(node);
 
 	int i = 0;
-
-	// /*?*/
 	while(i <= Node->num_chaves-1  && strcmp(pk, Node->chave[i].pk) > 0){
 		i++;
 	}
-
-	// /*?*/
+	
 	if(i <= Node->num_chaves-1 && strcmp(pk, Node->chave[i].pk) == 0){
-		/*COMENTAR*/
-		// printf("Chave->pk %s\n", Chave.pk);
-		// printf("Node->chave[i].pk %s\n", Node->chave[i].pk);
 		return Node->chave[i].rrn;
 	}
 
@@ -1139,47 +951,29 @@ int bIP(int node, char pk[] ){
 		return -1;
 	else
 		return bIP(Node->desc[i], pk);
-
 }
 
-
-/* A função splitNode recebe o RRN do NÓ(Página), a CHAVE e o RRN do FILHO DIREITO*/
 Dados splitNode(int node, Chave_ip *Chave, int filhoDireito){
-
-	/*COMENTAR*/
-	// printf("Chave->pk %s\n", Chave->pk);
-	// printf("Chave->rrn %d\n", Chave->rrn);
-	// printf("node (RRN) %d\n", node);
-	// printf("filhoDireito (RRN) %d\n", filhoDireito);
-
 	//X
 	node_Btree_ip *Node = read_btree_ip(node);
 	
 	int i = 0;
 	i = Node->num_chaves-1;
-
 	//Flag para CHAVE_ALOCADA - O valor ZERO indica FALSO - Linha 3 do PSEUDO CÓDIGO
 	int flag = 0;
-
 	//Y
 	node_Btree_ip *newNode = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
 	CriarNode_IP(newNode);
 
 	newNode->folha = Node->folha;
-
-	//Preciso utilizar uma função para pegar o 'piso'?
 	newNode->num_chaves = floor((ordem_ip-1)/2);
 
-	// j > 0 ou j >= 0 ?
 	for(int j = newNode->num_chaves-1; j >= 0; j--){
-		
 		if(!flag && strcmp(Chave->pk, Node->chave[i].pk)>0){
-			
 			strcpy(newNode->chave[j].pk, Chave->pk);
 			newNode->chave[j].rrn = Chave->rrn;
 
 			newNode->desc[j+1] = filhoDireito;
-
 			flag = 1;
 		}
 		else{
@@ -1191,11 +985,8 @@ Dados splitNode(int node, Chave_ip *Chave, int filhoDireito){
 			i--;
 		}
 	}
-
 	if(!flag){
-
 		while(i >= 0 && strcmp(Chave->pk, Node->chave[i].pk) < 0){
-
 			strcpy(Node->chave[i+1].pk, Node->chave[i].pk);
 			Node->chave[i+1].rrn = Node->chave[i].rrn;
 
@@ -1203,60 +994,43 @@ Dados splitNode(int node, Chave_ip *Chave, int filhoDireito){
 
 			i--;
 		}
-
 		strcpy(Node->chave[i+1].pk, Chave->pk);
 		Node->chave[i+1].rrn = Chave->rrn;
 
 		Node->desc[i+2] = filhoDireito;
-
 	}
-
 	Dados Resultado;
 	strcpy(Resultado.cPromovida.pk, Node->chave[ordem_ip/2].pk);
 	Resultado.cPromovida.rrn = Node->chave[ordem_ip/2].rrn;
 
 	Resultado.fDireito = nregistrosip;
 
-	Node->chave[ordem_ip/2].rrn = -1;
-
 	newNode->desc[0] = Node->desc[(ordem_ip/2)+1];
 	Node->num_chaves = floor(ordem_ip/2);
+
+	for(int k=ordem_ip/2; k<ordem_ip; k++)
+		Node->chave[k].rrn = -1;
 
 	//Uma PÁGINA pode conter 'ordem_ip' descendentes, entretanto caso o número de chaves não seja 'ordem_ip-1',
 	//nem todos os descendentes podem existir, deste modo precisamos fazer uma verificação e atualizar os descendentes c
 	//caso haja necessidade. 
-	if(!(Node->num_chaves == ordem_ip-1))
-		for(int j = Node->num_chaves+1; j <= ordem_ip-1; j++)
-			Node->desc[j] = -1;
+	
+	for(int j = Node->num_chaves+1; j <= ordem_ip-1; j++)
+		Node->desc[j] = -1;
 
 	write_btree_ip(Node, node);
 	write_btree_ip(newNode, nregistrosip);
-
 	nregistrosip++;
-	
 	return Resultado; 
-	
 }
 
-//Inserir "Auxiliar" - Recebe um nó NÃO VAZIA, no caso recebemos o RRN para recuperarmos o nó com a função "read_btree_ip",
-// e uma Chave(do tipo Chave_ip)
-Dados InserirIP(int RRN, Chave_ip *Chave){
-
-	/*COMENTAR*/
-	// printf("Chave->pk %s\n", Chave->pk);
-	
+Dados InserirIP(int RRN, Chave_ip *Chave){	
 	node_Btree_ip *Node = read_btree_ip(RRN);
 
-	/*COMENTAR*/
-	// printf("Node->chave[0].pk %s\n", Node->chave[0].pk);
-	
 	int i = 0;
-
 	if(Node->folha == 'F'){
 		if(Node->num_chaves < ordem_ip-1){
-			
 			i = Node->num_chaves-1;
-			
 			//Comparamos a PrimaryKey da Chave com a do Node até encontrarmos o local correto para inserir
 			while(i >= 0 && strcmp(Chave->pk, Node->chave[i].pk)< 0){ // && k < ci[x] 
 				strcpy(Node->chave[i+1].pk, Node->chave[i].pk);
@@ -1274,19 +1048,14 @@ Dados InserirIP(int RRN, Chave_ip *Chave){
 			Resultado.fDireito = -1;
 
 			write_btree_ip(Node, RRN);
-			//return (NULL, NULL);
 			return (Resultado);
 		}
-		else{
-			//O valor -1 para o RRN do FILHO DIREITO na função splitNode é utilizado para representar NULL
+		else
 			return splitNode(RRN, Chave, -1);
-		}
 	}
 	else{
-		
 		//Caso a PÁGINA não esteja marcada como FOLHA, procuramos a FOLHA em que desejamos inserir */
 		i = Node->num_chaves-1;
-
 		while(i >= 0 && strcmp(Chave->pk, Node->chave[i].pk)< 0){
 			i--;
 		}
@@ -1297,16 +1066,11 @@ Dados InserirIP(int RRN, Chave_ip *Chave){
 		//Verificamos se a CHAVE PROMOVIDA é diferente de NULL, neste caso verificamos se o RRN não é -1.
 		//Caso seja atribuimos suas informações a CHAVE.
 		if(Resultado.cPromovida.rrn != -1){
-			
 			strcpy(Chave->pk, Resultado.cPromovida.pk);
 			Chave->rrn = Resultado.cPromovida.rrn;
-
 			if(Node->num_chaves < ordem_ip-1){
-				
 				i = Node->num_chaves-1;
-
 				while(i>=0 && strcmp(Chave->pk, Node->chave[i].pk)< 0){
-					
 					strcpy(Node->chave[i+1].pk, Node->chave[i].pk);
 					Node->chave[i+1].rrn = Node->chave[i].rrn;
 
@@ -1314,7 +1078,6 @@ Dados InserirIP(int RRN, Chave_ip *Chave){
 
 					i--;
 				}
-
 				strcpy(Node->chave[i+1].pk, Chave->pk);
 				Node->chave[i+1].rrn = Chave->rrn;
 
@@ -1328,15 +1091,10 @@ Dados InserirIP(int RRN, Chave_ip *Chave){
 				Resultado.fDireito = -1;
 
 				write_btree_ip(Node, RRN);
-				//return (NULL, NULL);
 				return (Resultado);
-
 			}
-			else{
-				/*?*/
+			else
 				return splitNode(RRN, Chave, Resultado.fDireito);
-						
-			}
 		}
 		else{
 			Dados Resultado;
@@ -1345,11 +1103,9 @@ Dados InserirIP(int RRN, Chave_ip *Chave){
 			Resultado.fDireito = -1;
 
 			write_btree_ip(Node, RRN);
-			//return (NULL, NULL);
 			return (Resultado);
 		}
 	}
-
 }
 
 void gerarChave(Produto * Novo){
@@ -1365,11 +1121,9 @@ void gerarChave(Produto * Novo){
 	Novo->pk[8] = Novo->ano[0];
 	Novo->pk[9] = Novo->ano[1]; 
 	Novo->pk[10] = '\0';
-
 }
 
  void cadastrar(Indice* iprimary, Indice* ibrand){
-
 	//Código - NÃO é inserido pelo usuário 
 	// char pk[TAM_PRIMARY_KEY];
 	// gerarChave(novo);
@@ -1416,7 +1170,6 @@ void gerarChave(Produto * Novo){
 
 	gerarChave(&Novo);
 
-	/*COMENTAR*/
 	// printf("bChave.pk %s\n", bChave.pk);
 	// printf("bChave.rrn %d\n", bChave.rrn);
 
@@ -1427,10 +1180,8 @@ void gerarChave(Produto * Novo){
 			return;
 		}
 
-	// else{
-		
+	// else{	
 		nregistros++;
-
 		//Registro Auxiliar
 		char rAuxiliar[193]; //TAM_REGISTRO
 		rAuxiliar[192] = '\0';
@@ -1440,33 +1191,18 @@ void gerarChave(Produto * Novo){
 		//Precisamos obter o TAMANHO do REGISTRO AUXILIAR (rAuxiliar) para sabermos quantos "bytes" faltam para preencher totalmento o REGISTRO.
 		int Tamanho = strlen(rAuxiliar);
 
-		// printf("\nTamanho = %d\n", Tamanho);
-
 		int i;
 		//Preenchendo o REGISTRO por completo (192bytes)
 		for(i = Tamanho; i < 192; i++)
 			rAuxiliar[i] = '#';
 
-		// printf("\nTamanho - Final = %d", strlen(rAuxiliar));
-		// printf("\n Registro: %s \n", rAuxiliar);
-
 		strcat(ARQUIVO, rAuxiliar);
-
-		//int tRegistro = strlen(rAuxiliar);
-		//printf("%d\n", tRegistro);
-		
-		//printf("%s\n", rAuxiliar);
-		
-		//printf("%s\n", ARQUIVO);
 		
 		/* -------------------------------------------------- */
 		/* Caso 1 - Insere na Raiz (Raiz == -1 Indica que a ARVORE-B está VAZIA) */
 		if(iprimary->raiz == -1){
 			node_Btree_ip * newNode_IP = (node_Btree_ip*)malloc(sizeof(node_Btree_ip));
 			CriarNode_IP(newNode_IP);
-			
-			// node_Btree_is * newNode_IS = (node_Btree_is*)malloc(sizeof(node_Btree_is));
-			// CriarNode_IS(newNode_IS);
 			
 			newNode_IP->num_chaves++;
 			strcpy(newNode_IP->chave[0].pk, Novo.pk);
@@ -1476,11 +1212,7 @@ void gerarChave(Produto * Novo){
 			iprimary->raiz = 0;
 			
 			write_btree_ip(newNode_IP, 0);
-
 			nregistrosip++;
-
-			// write_btree_is(newNode_IS, 0);
-
 		}
 		// /*Caso 2 - A ARVORE-B NÃO está mais VAZIA*/
 		else{
@@ -1488,16 +1220,7 @@ void gerarChave(Produto * Novo){
 			strcpy(Chave.pk, Novo.pk);
 			Chave.rrn = nregistros-1;
 
-			/*COMENTAR*/
-			// printf("Chave.pk %s\n", Chave.pk);
-			// printf("Chave.rrn %d\n", Chave.rrn);
-
-			//Qual RRN utilizar?
 			Dados Resultado = InserirIP(iprimary->raiz, &Chave);
-
-			/*COMENTAR*/
-			// printf("Resultado.cPromovida->pk %s\n", Resultado.cPromovida->rrn);
-			// printf("%d\n", Resultado.fDireito);
 
 			//Verificamos se CHAVE PROMOVIDA é diferente de NULL, neste caso verificamos se o RRN é diferente de -1
 			if(Resultado.cPromovida.rrn != -1){
@@ -1505,22 +1228,17 @@ void gerarChave(Produto * Novo){
 				CriarNode_IP(newNode_IP);
 
 				newNode_IP->folha = 'N';
-
 				newNode_IP->num_chaves = 1;
-
 				strcpy(newNode_IP->chave[0].pk, Resultado.cPromovida.pk);
 				newNode_IP->chave[0].rrn = Resultado.cPromovida.rrn;
-
-				/*?*/
+				
 				newNode_IP->desc[0] = iprimary->raiz;
-
+				
 				newNode_IP->desc[1] = Resultado.fDireito;
 
-				/*? - Linha 21 do PSEUDO CÓDIGO*/
 				iprimary->raiz = nregistrosip;
 
 				write_btree_ip(newNode_IP, nregistrosip);
-
 				nregistrosip++;
 			}
 		}
@@ -1534,28 +1252,20 @@ void gerarChave(Produto * Novo){
 			newNode_IS->num_chaves++;
 			
 			char string[102];
-			string[101] = '\0';
+			memset(string, '\0', TAM_STRING_INDICE);
 
 			strcat(string, Novo.marca);
 			strcat(string, "$");
 			strcat(string, Novo.nome);
 
-			/*COMENTAR*/
-			// printf("%s\n", string);
-
 			int Tamanho = strlen(string);
-
 			for(int j = 0; j < 101-Tamanho; j++){
 				strcat(string, "#");
 			}
-			
-			/*COMENTAR*/
-			// printf("%s\n\n", string);
 
 			strcpy(newNode_IS->chave[0].string, string);
 			strcpy(newNode_IS->chave[0].pk, Novo.pk);
-			
-
+		
 			/*Indica que a ARVORE-B NÃO está mais VAZIA*/
 			ibrand->raiz = 0;
 			
@@ -1563,7 +1273,6 @@ void gerarChave(Produto * Novo){
 			write_btree_is(newNode_IS, 0);
 
 			nregistrosis++;
-
 		}
 		/*Caso 2 - A ARVORE-B NÃO está mais VAZIA*/
 		else{
@@ -1571,62 +1280,39 @@ void gerarChave(Produto * Novo){
 			strcpy(ChaveIS.pk, Novo.pk);
 
 			char string[102];
-			memset(string, 0, TAM_STRING_INDICE);
+			memset(string, '\0', TAM_STRING_INDICE);
 
 			strcat(string, Novo.marca);
 			strcat(string, "$");
 			strcat(string, Novo.nome);
-			
-			/*COMENTAR*/
-			// printf("%s\n", string);
-
 
 			int Tamanho = strlen(string);
 
-			for(int j = 0; j < 101-Tamanho; j++){
+			for(int j = 0; j < 101-Tamanho; j++)
 				strcat(string, "#");
-			}
-
-			/*COMENTAR*/
-			// printf("%s\n\n", string);
 
 			strcpy(ChaveIS.string, string);
 
-			//Qual RRN utilizar?
 			Dados_iS Resultado_IS = InserirIS(ibrand->raiz, &ChaveIS);
-
 			//Verificamos se CHAVE PROMOVIDA é diferente de NULL, neste caso verificamos se o RRN é diferente de -1
 			if(Resultado_IS.cPromovida_iS.string[0] != '\0'){
 				node_Btree_is * newNode_IS = (node_Btree_is*)malloc(sizeof(node_Btree_is));
 				CriarNode_IS(newNode_IS);
 
 				newNode_IS->folha = 'N';
-
 				newNode_IS->num_chaves = 1;
-
 				strcpy(newNode_IS->chave[0].pk, Resultado_IS.cPromovida_iS.pk);
 				strcpy(newNode_IS->chave[0].string, Resultado_IS.cPromovida_iS.string);
-
-				/*?*/
 				newNode_IS->desc[0] = ibrand->raiz;
-
 				newNode_IS->desc[1] = Resultado_IS.fDireito_iS;
 
-				/*? - Linha 21 do PSEUDO CÓDIGO*/
 				ibrand->raiz = nregistrosis;
 
-
-				/*COMENTAR*/
-				// printf("Resultado_IS.cPromovida_iS.pk %s\n", Resultado_IS.cPromovida_iS.pk);
-				// printf("Resultado_IS.cPromovida_iS.string %s\n\n", Resultado_IS.cPromovida_iS.string);
-
 				write_btree_is(newNode_IS, nregistrosis);
-
 				nregistrosis++;
 			}
 		}
-	// }
-	
+	// }	
 }
 
  int alterar(Indice iprimary){
@@ -1642,10 +1328,8 @@ void gerarChave(Produto * Novo){
 		printf(REGISTRO_N_ENCONTRADO);
 		return 0;
 	}
-
 	//O desconto inserido precisa ser de 3 bytes com valor entre 000 e 100.
 	char Desconto[3];
-	
 	int flag = 0;
 			
 	//getchar();
@@ -1658,20 +1342,14 @@ void gerarChave(Produto * Novo){
 	while(flag == 0){	
 		printf(CAMPO_INVALIDO);
 
-		//getchar();	
 		scanf("%[^\n]s", Desconto);
 		getchar();
 		
 		if(strcmp(Desconto, "000") >= 0 && strcmp(Desconto, "100") <= 0)
 			flag = 1;
 	}
-	
-	
-	// printf("RRN %d\n", RRN);
 
 	char *Arquivo = ARQUIVO + RRN * 192;
-
-	// printf("%s\n", Arquivo);
 
 	int Contador = 0;
 	while(Contador < 6){
@@ -1680,16 +1358,11 @@ void gerarChave(Produto * Novo){
 		Arquivo++;
 	}
 
-	//printf("Contador %d\n", Contador);
-	// printf("%s\n", Arquivo);
-
 	for(int i = 0; i < 3; i++){
 		*Arquivo = Desconto[i];
 		Arquivo++;
 	}
-
 	return 1;
-
  }
 
 //Função auxliar para buscar um PRIMARY KEY inserida pelo usuário.
@@ -1707,12 +1380,10 @@ int Buscar_iPrimary(int node, char pk[]){
 
 	int i = 0;
 
-	// /*?*/
 	while(i <= Node->num_chaves-1  && strcmp(pk, Node->chave[i].pk) > 0){
 		i++;
 	}
 
-	// /*?*/
 	if(i <= Node->num_chaves-1 && strcmp(pk, Node->chave[i].pk) == 0){
 		/*COMENTAR*/
 		// printf("Chave->pk %s\n", Chave.pk);
@@ -1724,16 +1395,55 @@ int Buscar_iPrimary(int node, char pk[]){
 		return -1;
 	else
 		return Buscar_iPrimary(Node->desc[i], pk);
-
 }
- 
+
+char *Buscar_iBrand(int node, char string[]){
+
+	node_Btree_is *Node = read_btree_is(node);
+
+	char sAuxiliar[TAM_STRING_INDICE],*p;
+
+	int j = 0;
+	for(j = 0; j < Node->num_chaves-1; j++){
+		strcpy(sAuxiliar, Node->chave[j].string);
+		p = strtok(sAuxiliar, "#");
+		printf("%s", p);
+		printf(", ");
+	}
+	
+	strcpy(sAuxiliar, Node->chave[j].string);
+	p = strtok(sAuxiliar, "#");
+
+	printf("%s\n", p);
+
+	int i = 0;
+
+	while(i <= Node->num_chaves-1  && strcmp(string, Node->chave[i].string) > 0){
+		i++;
+	}
+
+	if(i <= Node->num_chaves-1 && strcmp(string, Node->chave[i].string) == 0){
+		/*COMENTAR*/
+		// printf("Chave->pk %s\n", Chave.pk);
+		// printf("Node->chave[i].pk %s\n", Node->chave[i].pk);
+		return Node->chave[i].pk;
+	}
+
+	if(Node->folha == 'F')
+		return "\0";
+	else
+		return Buscar_iBrand(Node->desc[i], string);
+}
+
 void buscar(Indice iprimary,Indice ibrand){
 
-	
 	int Opcao;
 	scanf("%d", &Opcao);
 
 	char pk[TAM_PRIMARY_KEY];
+
+	char Nome[TAM_NOME];
+	char Marca[TAM_MARCA];
 
 	switch(Opcao){
 		/*Busca por Código*/
@@ -1757,8 +1467,43 @@ void buscar(Indice iprimary,Indice ibrand){
 			else
 				exibir_registro(Resultado);
 		break;
-	}
+		case 2:
+			getchar();
+			scanf("%[^\n]s", Marca);
+			getchar();
+			scanf("%[^\n]s", Nome);
 
+			char string[TAM_STRING_INDICE];
+			memset(string, '\0', TAM_STRING_INDICE);
+			strcat(string, Marca);
+			strcat(string, "$");
+			strcat(string, Nome);
+
+			printf(NOS_PERCORRIDOS_IS, string);
+
+			if(ibrand.raiz == -1){
+				printf("\n");
+				printf(REGISTRO_N_ENCONTRADO);
+				return;
+			}
+
+			int Tamanho = strlen(string);
+			for(int i=0; i < 101-Tamanho; i++)
+				strcat(string, "#");
+			
+			Resultado = bIP(iprimary.raiz, Buscar_iBrand(ibrand.raiz, string));
+			printf("\n");
+			
+			if(Resultado == -1)
+				printf(REGISTRO_N_ENCONTRADO);
+			else
+				exibir_registro(Resultado);
+		
+			// printf("%s\n", Marca);
+			// printf("%s\n", Nome);
+
+		break;
+	}
  }
 
 //Imprime o NÍVEL e o campo da PRIMARY KEY do iPrimary
@@ -1784,20 +1529,65 @@ void listIP(int RRN, int Level){
 	for(int j = 0; j <= Node->num_chaves; j++){
 	 	listIP(Node->desc[j], Level);
 	}
+}
 
+void listIS(int RRN){
+	node_Btree_is *Node = read_btree_is(RRN);
+	char Auxiliar[TAM_STRING_INDICE];	
+
+	int i;
+	for(i=0; i< Node->num_chaves; i++){
+	
+		if(Node->folha == 'N')
+			listIS(Node->desc[i]);	
+		memset(Auxiliar, '\0', TAM_STRING_INDICE);
+	    int j = 0;
+		while(Node->chave[i].string[j] != '$' && j < 101){
+			Auxiliar[j] = Node->chave[i].string[j];
+			j++;
+		}
+		int jString = j;
+
+		int Tamanho = strlen(Auxiliar);
+
+		int k=0;
+		for(k=0; k <= 50-Tamanho; k++ && j++)
+			strcat(Auxiliar, "-");
+
+		Auxiliar[j] = ' ';
+		j++;
+
+		jString++;
+		while(Node->chave[i].string[jString] != '#' && j < 101){
+			Auxiliar[j] = Node->chave[i].string[jString];
+			j++;
+			jString++;
+		}
+		Tamanho = strlen(Auxiliar);
+
+		jString++;
+		for(k=0; k < 101-Tamanho; k++)
+			strcat(Auxiliar, "-");
+		printf("%s\n", Auxiliar);
+	}
+	if(Node->folha == 'N')
+	 	listIS(Node->desc[i]);
 }
 
 void listar(Indice iprimary,Indice ibrand){
-
 	int Opcao;
-	
 	scanf("%d", &Opcao);
 
-	if(Opcao == 1)
+	if(Opcao == 1){
 		if(iprimary.raiz == -1)
 			printf(REGISTRO_N_ENCONTRADO);
 		else
 			listIP(iprimary.raiz, 0);
-	
-
+	}
+	else{
+		if(ibrand.raiz == -1)
+			printf(REGISTRO_N_ENCONTRADO);
+		else
+			listIS(ibrand.raiz);
+	}
  }
